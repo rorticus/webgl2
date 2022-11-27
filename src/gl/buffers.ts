@@ -1,5 +1,6 @@
 export const PositionBuffer = "position";
 export const IndexBuffer = "indices";
+export const NormalBuffer = "normal";
 
 export interface AttributeSource {
   [key: string]: WebGLBuffer;

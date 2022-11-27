@@ -2,16 +2,19 @@ import {
   AttributeSource,
   IBO,
   IndexBuffer,
+  NormalBuffer,
   PositionBuffer,
   VBO,
 } from "./buffers";
 
 class Geometry {
   vertices: Float32Array = new Float32Array();
+  normals: Float32Array = new Float32Array();
   indices: Uint16Array = new Uint16Array();
 
   private positionBuffer: VBO | null = null;
   private indexBuffer: IBO | null = null;
+  private normalBuffer: VBO | null = null;
 
   getPositionBuffer(gl: WebGL2RenderingContext) {
     if (!this.positionBuffer) {
@@ -29,10 +32,19 @@ class Geometry {
     return this.indexBuffer.getBuffer(gl);
   }
 
+  getNormalBuffer(gl: WebGL2RenderingContext) {
+    if (!this.normalBuffer) {
+      this.normalBuffer = new VBO(this.normals);
+    }
+
+    return this.normalBuffer.getBuffer(gl);
+  }
+
   getAttributeSource(gl: WebGL2RenderingContext): AttributeSource {
     return {
       [PositionBuffer]: this.getPositionBuffer(gl),
       [IndexBuffer]: this.getIndexBuffer(gl),
+      [NormalBuffer]: this.getNormalBuffer(gl),
     };
   }
 

@@ -1,4 +1,9 @@
-import { AttributeSource, IndexBuffer, PositionBuffer } from "./buffers";
+import {
+  AttributeSource,
+  IndexBuffer,
+  NormalBuffer,
+  PositionBuffer,
+} from "./buffers";
 import { setUniform, Uniforms } from "./unforms";
 
 class Material {
@@ -8,6 +13,7 @@ class Material {
 
   attributes: Record<string, string> = {
     vPosition: PositionBuffer,
+    vNormal: NormalBuffer,
   };
 
   attributeMap: { [key: string]: number } = {};
