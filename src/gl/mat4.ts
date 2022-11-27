@@ -120,6 +120,39 @@ export function mat4RotationZ(dest: Mat4, radians: number) {
   return dest;
 }
 
+export function mat4Perspective(
+  dest: Mat4,
+  fieldOfViewInRadians: number,
+  aspectRatio: number,
+  near: number,
+  far: number
+) {
+  const f = 1.0 / Math.tan(fieldOfViewInRadians / 2);
+  const rangeInv = 1 / (near - far);
+
+  dest[0] = f / aspectRatio;
+  dest[1] = 0;
+  dest[2] = 0;
+  dest[3] = 0;
+
+  dest[4] = 0;
+  dest[5] = f;
+  dest[6] = 0;
+  dest[7] = 0;
+
+  dest[8] = 0;
+  dest[9] = 0;
+  dest[10] = (near + far) * rangeInv;
+  dest[11] = -1;
+
+  dest[12] = 0;
+  dest[13] = 0;
+  dest[14] = near * far * rangeInv * 2;
+  dest[15] = 0;
+
+  return dest;
+}
+
 export function mat4Print(m: Mat4) {
   console.log(`${m[0]} ${m[1]} ${m[2]} ${m[3]}`);
   console.log(`${m[4]} ${m[5]} ${m[6]} ${m[7]}`);

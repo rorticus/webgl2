@@ -5,6 +5,7 @@ import { OrbitCamera } from "./gl/orbitcamera";
 import { vec3, vec3Add } from "./gl/vec3";
 import { loadObj } from "./gl/obj";
 import objModel from "./models/cube.obj";
+import { mat4, mat4Transpose } from "./gl/mat4";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const gl = canvas.getContext("webgl2")!;
@@ -50,6 +51,11 @@ const render = () => {
 
   model.prepare(gl, {
     uModelViewMatrix: { type: "mat4", value: modelView },
+    uProjectionMatrix: { type: "mat4", value: camera.projectionMatrix },
+    uNormalMatrix: {
+      type: "mat4",
+      value: mat4Transpose(mat4(), camera.transformationMatrix),
+    },
   });
   model.draw(gl);
 

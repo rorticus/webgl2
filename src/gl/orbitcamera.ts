@@ -5,6 +5,7 @@ import {
   mat4Identity,
   mat4Inv,
   mat4Mul,
+  mat4Perspective,
   mat4RotationX,
   mat4RotationY,
   mat4RotationZ,
@@ -14,6 +15,8 @@ import {
 export class OrbitCamera {
   position: Vec3;
   rotation: Vec3;
+
+  projectionMatrix: Mat4;
 
   get transformationMatrix(): Mat4 {
     const m = mat4Identity(mat4());
@@ -34,5 +37,7 @@ export class OrbitCamera {
   constructor() {
     this.position = vec3();
     this.rotation = vec3();
+
+    this.projectionMatrix = mat4Perspective(mat4(), Math.PI / 4, 1, 0.1, 100);
   }
 }
