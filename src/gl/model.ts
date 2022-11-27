@@ -1,5 +1,6 @@
 import Geometry from "./geometry";
 import Material from "./material";
+import { Uniforms } from "./unforms";
 
 class Model {
   geometry: Geometry;
@@ -10,8 +11,12 @@ class Model {
     this.material = material;
   }
 
-  prepare(gl: WebGL2RenderingContext) {
-    this.material.prepare(gl, this.geometry.getAttributeSource(gl));
+  prepare(gl: WebGL2RenderingContext, renderUniforms: Uniforms) {
+    this.material.prepare(
+      gl,
+      this.geometry.getAttributeSource(gl),
+      renderUniforms
+    );
   }
 
   draw(gl: WebGL2RenderingContext) {

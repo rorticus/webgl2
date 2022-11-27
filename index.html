@@ -10,9 +10,10 @@
     precision mediump float;
 
       in vec3 vPosition;
+      uniform mat4 uModelViewMatrix;
 
       void main() {
-        gl_Position = vec4(vPosition, 1.0);
+        gl_Position =  uModelViewMatrix * vec4(vPosition, 1.0);
       }
     </script>
     <script id="fragment-shader" type="x-shader/x-fragment">

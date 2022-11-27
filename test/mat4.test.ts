@@ -4,10 +4,17 @@ import {
   mat4Det,
   mat4Inv,
   mat4Mul,
+  mat4MulVec3,
+  mat4RotationX,
+  mat4RotationY,
+  mat4RotationZ,
+  mat4Scale,
   mat4Sub,
+  mat4Translation,
   mat4Transpose,
 } from "../src/gl/mat4";
 import { mat3 } from "../src/gl/mat3";
+import { vec3 } from "../src/gl/vec3";
 
 describe("mat4", () => {
   it("should initialize a matrix", () => {
@@ -78,6 +85,53 @@ describe("mat4", () => {
     ];
     for (let i = 0; i < b.length; i++) {
       expect(b[i]).toBeCloseTo(expected[i]);
+    }
+  });
+
+  it("should construct a translation matrix", () => {
+    const m = mat4Translation(mat4(), vec3(5, -3, 2));
+    const p = vec3(-3, 4, 5);
+
+    expect(mat4MulVec3(vec3(), m, p)).toEqual(vec3(2, 1, 7));
+  });
+
+  it("should construct a scaling matrix", () => {
+    const m = mat4Scale(mat4(), vec3(2, 3, 4));
+    const p = vec3(-4, 6, 8);
+
+    expect(mat4MulVec3(vec3(), m, p)).toEqual(vec3(-8, 18, 32));
+  });
+
+  it("should construct an x rotation matrix", () => {
+    const m = mat4RotationX(mat4(), Math.PI / 2);
+    const p = vec3(0, 1, 0);
+    const actual = mat4MulVec3(vec3(), m, p);
+    const expected = vec3(0, 0, 1);
+
+    for (let i = 0; i < actual.length; i++) {
+      expect(actual[i]).toBeCloseTo(expected[i]);
+    }
+  });
+
+  it("should construct a y rotation matrix", () => {
+    const m = mat4RotationY(mat4(), Math.PI / 2);
+    const p = vec3(0, 0, 1);
+    const actual = mat4MulVec3(vec3(), m, p);
+    const expected = vec3(1, 0, 0);
+
+    for (let i = 0; i < actual.length; i++) {
+      expect(actual[i]).toBeCloseTo(expected[i]);
+    }
+  });
+
+  it("should construct a z rotation matrix", () => {
+    const m = mat4RotationZ(mat4(), Math.PI / 2);
+    const p = vec3(0, 1, 0);
+    const actual = mat4MulVec3(vec3(), m, p);
+    const expected = vec3(-1, 0, 0);
+
+    for (let i = 0; i < actual.length; i++) {
+      expect(actual[i]).toBeCloseTo(expected[i]);
     }
   });
 });

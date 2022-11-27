@@ -1,4 +1,5 @@
 import { AttributeSource, IndexBuffer, PositionBuffer } from "./buffers";
+import { setUniform, Uniforms } from "./unforms";
 
 class Material {
   program: WebGLProgram;
@@ -10,6 +11,7 @@ class Material {
   };
 
   attributeMap: { [key: string]: number } = {};
+  uniformMap: { [key: string]: WebGLUniformLocation } = {};
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -27,6 +29,12 @@ class Material {
 
     gl.linkProgram(p);
 
+    const numUniforms = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+    for (let i = 0; i < numUniforms; i++) {
+      const uniform = gl.getActiveUniform(p, i)!;
+      this.uniformMap[uniform.name] = gl.getUniformLocation(p, uniform.name)!;
+    }
+
     Object.keys(this.attributes).forEach((attributeName) => {
       this.attributeMap[attributeName] = gl.getAttribLocation(
         this.program,
@@ -35,8 +43,22 @@ class Material {
     });
   }
 
-  prepare(gl: WebGL2RenderingContext, attributeSource: AttributeSource) {
+  prepare(
+    gl: WebGL2RenderingContext,
+    attributeSource: AttributeSource,
+    renderUniforms: Uniforms
+  ) {
     gl.useProgram(this.program);
+
+    Object.keys(renderUniforms).forEach((uniformName) => {
+      if (this.uniformMap[uniformName]) {
+        setUniform(
+          gl,
+          this.uniformMap[uniformName],
+          renderUniforms[uniformName]
+        );
+      }
+    });
 
     Object.keys(this.attributes).forEach((attributeName) => {
       const buffer = attributeSource[this.attributes[attributeName]];
