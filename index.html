@@ -10,17 +10,15 @@
     precision mediump float;
 
       in vec3 vPosition;
-      in vec3 vNormal;
+        in vec3 vNormal;
 
       uniform mat4 uModelViewMatrix;
-      uniform mat4 uNormalMatrix;
-      uniform mat4 uProjectionMatrix;
 
       out vec3 normal;
 
       void main() {
-        normal = (vec4(vNormal, 1.0) * uNormalMatrix).xyz;
-        gl_Position = uModelViewMatrix * uProjectionMatrix * vec4(vPosition, 1.0);
+        gl_Position = uModelViewMatrix * vec4(vPosition, 1.0);
+        normal = vNormal;
       }
     </script>
     <script id="fragment-shader" type="x-shader/x-fragment">
@@ -28,13 +26,17 @@
     precision mediump float;
 
     out vec4 fragColor;
+    in vec3 normal;
+
       void main() {
         fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        //fragColor = vec4(normalize(normal), 1.0);
       }
     </script>
   </head>
   <body>
     <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="data"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

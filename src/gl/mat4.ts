@@ -123,14 +123,16 @@ export function mat4RotationZ(dest: Mat4, radians: number) {
 export function mat4Perspective(
   dest: Mat4,
   fieldOfViewInRadians: number,
-  aspectRatio: number,
+  width: number,
+  height: number,
   near: number,
   far: number
 ) {
+  const a = height / width;
   const f = 1.0 / Math.tan(fieldOfViewInRadians / 2);
-  const rangeInv = 1 / (near - far);
+  const nf = 1 / (near - far);
 
-  dest[0] = f / aspectRatio;
+  dest[0] = a * f;
   dest[1] = 0;
   dest[2] = 0;
   dest[3] = 0;
@@ -142,12 +144,12 @@ export function mat4Perspective(
 
   dest[8] = 0;
   dest[9] = 0;
-  dest[10] = (near + far) * rangeInv;
-  dest[11] = -1;
+  dest[10] = far + near * nf;
+  dest[11] = 0 - -1;
 
   dest[12] = 0;
   dest[13] = 0;
-  dest[14] = near * far * rangeInv * 2;
+  dest[14] = 2 * far * near * nf;
   dest[15] = 0;
 
   return dest;
@@ -296,24 +298,25 @@ export function mat4Inv(dest: Mat4, a: Mat4) {
     return dest;
   }
 
+  const temp = mat4Clone(a);
   const invDet = 1 / det;
 
-  dest[0] = mat3Det(mat4Sub(mat3(), a, 0, 0)) * invDet;
-  dest[1] = -mat3Det(mat4Sub(mat3(), a, 1, 0)) * invDet;
-  dest[2] = mat3Det(mat4Sub(mat3(), a, 2, 0)) * invDet;
-  dest[3] = -mat3Det(mat4Sub(mat3(), a, 3, 0)) * invDet;
-  dest[4] = -mat3Det(mat4Sub(mat3(), a, 0, 1)) * invDet;
-  dest[5] = mat3Det(mat4Sub(mat3(), a, 1, 1)) * invDet;
-  dest[6] = -mat3Det(mat4Sub(mat3(), a, 2, 1)) * invDet;
-  dest[7] = mat3Det(mat4Sub(mat3(), a, 3, 1)) * invDet;
-  dest[8] = mat3Det(mat4Sub(mat3(), a, 0, 2)) * invDet;
-  dest[9] = -mat3Det(mat4Sub(mat3(), a, 1, 2)) * invDet;
-  dest[10] = mat3Det(mat4Sub(mat3(), a, 2, 2)) * invDet;
-  dest[11] = -mat3Det(mat4Sub(mat3(), a, 3, 2)) * invDet;
-  dest[12] = -mat3Det(mat4Sub(mat3(), a, 0, 3)) * invDet;
-  dest[13] = mat3Det(mat4Sub(mat3(), a, 1, 3)) * invDet;
-  dest[14] = -mat3Det(mat4Sub(mat3(), a, 2, 3)) * invDet;
-  dest[15] = mat3Det(mat4Sub(mat3(), a, 3, 3)) * invDet;
+  dest[0] = mat3Det(mat4Sub(mat3(), temp, 0, 0)) * invDet;
+  dest[1] = -mat3Det(mat4Sub(mat3(), temp, 1, 0)) * invDet;
+  dest[2] = mat3Det(mat4Sub(mat3(), temp, 2, 0)) * invDet;
+  dest[3] = -mat3Det(mat4Sub(mat3(), temp, 3, 0)) * invDet;
+  dest[4] = -mat3Det(mat4Sub(mat3(), temp, 0, 1)) * invDet;
+  dest[5] = mat3Det(mat4Sub(mat3(), temp, 1, 1)) * invDet;
+  dest[6] = -mat3Det(mat4Sub(mat3(), temp, 2, 1)) * invDet;
+  dest[7] = mat3Det(mat4Sub(mat3(), temp, 3, 1)) * invDet;
+  dest[8] = mat3Det(mat4Sub(mat3(), temp, 0, 2)) * invDet;
+  dest[9] = -mat3Det(mat4Sub(mat3(), temp, 1, 2)) * invDet;
+  dest[10] = mat3Det(mat4Sub(mat3(), temp, 2, 2)) * invDet;
+  dest[11] = -mat3Det(mat4Sub(mat3(), temp, 3, 2)) * invDet;
+  dest[12] = -mat3Det(mat4Sub(mat3(), temp, 0, 3)) * invDet;
+  dest[13] = mat3Det(mat4Sub(mat3(), temp, 1, 3)) * invDet;
+  dest[14] = -mat3Det(mat4Sub(mat3(), temp, 2, 3)) * invDet;
+  dest[15] = mat3Det(mat4Sub(mat3(), temp, 3, 3)) * invDet;
 
   return dest;
 }
