@@ -1,5 +1,5 @@
 import { mat3, Mat3, mat3Det } from "./mat3";
-import { Vec3 } from "./vec3";
+import { vec3, Vec3, vec3Cross, vec3Dot, vec3Normalize, vec3Sub } from "./vec3";
 
 export type Mat4 = Float32Array;
 
@@ -329,6 +329,35 @@ export function mat4MulVec3(dest: Vec3, a: Mat4, b: Vec3) {
   dest[0] = a[0] * x + a[4] * y + a[8] * z + a[12];
   dest[1] = a[1] * x + a[5] * y + a[9] * z + a[13];
   dest[2] = a[2] * x + a[6] * y + a[10] * z + a[14];
+
+  return dest;
+}
+
+export function mat4LookAt(dest: Mat4, target: Vec3, position: Vec3, up: Vec3) {
+  // https://learn.microsoft.com/en-us/previous-versions/windows/desktop/bb281710(v=vs.85)?redirectedfrom=MSDN
+  const zAxis = vec3Normalize(vec3(), vec3Sub(vec3(), target, position));
+  const xAxis = vec3Normalize(vec3(), vec3Cross(vec3(), up, zAxis));
+  const yAxis = vec3Normalize(vec3(), vec3Cross(vec3(), zAxis, xAxis));
+
+  dest[0] = xAxis[0];
+  dest[1] = yAxis[0];
+  dest[2] = zAxis[0];
+  dest[3] = 0;
+
+  dest[4] = xAxis[1];
+  dest[5] = yAxis[1];
+  dest[6] = zAxis[1];
+  dest[7] = 0;
+
+  dest[8] = xAxis[2];
+  dest[9] = yAxis[2];
+  dest[10] = zAxis[2];
+  dest[11] = 0;
+
+  dest[12] = -vec3Dot(xAxis, position);
+  dest[13] = -vec3Dot(yAxis, position);
+  dest[14] = -vec3Dot(zAxis, position);
+  dest[15] = 1;
 
   return dest;
 }

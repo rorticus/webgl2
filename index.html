@@ -13,12 +13,13 @@
         in vec3 vNormal;
 
       uniform mat4 uModelViewMatrix;
+        uniform mat4 uProjectionMatrix;
 
       out vec3 normal;
 
       void main() {
-        gl_Position = uModelViewMatrix * vec4(vPosition, 1.0);
-        normal = vNormal;
+        gl_Position =  vec4(vPosition, 1.0) * uModelViewMatrix * uProjectionMatrix;
+        normal = (uModelViewMatrix * vec4(vNormal, 1.0)).xyz;
       }
     </script>
     <script id="fragment-shader" type="x-shader/x-fragment">
@@ -28,8 +29,35 @@
     out vec4 fragColor;
     in vec3 normal;
 
+    float inverseLerp(float v, float minValue, float maxValue) {
+      return (v - minValue) / (maxValue - minValue);
+    }
+
+    float remap(float v, float minValue, float maxValue, float newMinValue, float newMaxValue) {
+      float t = inverseLerp(v, minValue, maxValue);
+        return mix(newMinValue, newMaxValue, t);
+    }
+
       void main() {
-        fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+      vec3 baseColor = vec3(0.5);
+      vec3 lighting = vec3(0.0);
+      vec3 n = normalize(normal);
+
+    // ambient lighting
+      vec3 ambient = vec3(0.5);
+
+      // hemi lighting
+      vec3 skyColor = vec3(0.0, 0.3, 0.6);
+      vec3 groundColor = vec3(0.6, 0.3, 0.1);
+
+      float hemiMix = remap(normal.y, -1.0, 1.0, 0.0, 1.0);
+      vec3 hemi = mix(groundColor, skyColor, hemiMix);
+
+      lighting = ambient + hemi;
+
+
+      vec3 color = baseColor * lighting;
+        fragColor = vec4(color, 1.0);
         //fragColor = vec4(normalize(normal), 1.0);
       }
     </script>

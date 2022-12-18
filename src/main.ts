@@ -8,6 +8,8 @@ import objModel from "./models/monkey.obj";
 import {
   mat4,
   mat4Identity,
+  mat4Inv,
+  mat4LookAt,
   mat4Mul,
   mat4RotationX,
   mat4RotationY,
@@ -59,6 +61,17 @@ const position = vec3(0, 0, 0);
 const rotation = vec3();
 let scale = 0.5;
 
+const cameraPosition = vec3(0, 2, 5);
+const cameraTarget = vec3(0, 0, 0);
+const cameraUp = vec3(0, 1, 0);
+const cameraTransform = mat4LookAt(
+  mat4(),
+  cameraPosition,
+  cameraTarget,
+  cameraUp
+);
+const inverseCameraTransform = mat4Inv(mat4(), cameraTransform);
+
 const render = () => {
   // draw it
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -80,7 +93,7 @@ const render = () => {
 
   model.prepare(gl, {
     uModelViewMatrix: { type: "mat4", value: transform },
-    // uProjectionMatrix: { type: "mat4", value: camera.projectionMatrix },
+    uProjectionMatrix: { type: "mat4", value: inverseCameraTransform },
     // uNormalMatrix: {
     //   type: "mat4",
     //   value: mat4Transpose(mat4(), camera.transformationMatrix),

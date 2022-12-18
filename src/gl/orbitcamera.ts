@@ -10,6 +10,7 @@ import {
   mat4RotationY,
   mat4RotationZ,
   mat4Translation,
+  mat4Transpose,
 } from "./mat4";
 
 export class OrbitCamera {
@@ -22,9 +23,9 @@ export class OrbitCamera {
     const m = mat4Identity(mat4());
 
     mat4Mul(m, m, mat4Translation(mat4(), this.position));
-    // mat4Mul(m, m, mat4RotationX(mat4(), this.rotation[0]));
-    // mat4Mul(m, m, mat4RotationY(mat4(), this.rotation[1]));
-    // mat4Mul(m, m, mat4RotationZ(mat4(), this.rotation[2]));
+    mat4Mul(m, m, mat4RotationX(mat4(), this.rotation[0]));
+    mat4Mul(m, m, mat4RotationY(mat4(), this.rotation[1]));
+    mat4Mul(m, m, mat4RotationZ(mat4(), this.rotation[2]));
 
     return m;
   }
@@ -40,12 +41,13 @@ export class OrbitCamera {
 
     this.projectionMatrix = mat4Perspective(
       mat4(),
-      Math.PI / 4,
+      (60 * Math.PI) / 180,
       800,
       600,
       0.01,
       1000
     );
+
     // this.projectionMatrix = mat4Identity(mat4());
   }
 }
