@@ -14,12 +14,13 @@
 
       uniform mat4 uModelViewMatrix;
         uniform mat4 uProjectionMatrix;
+        uniform mat4 uNormalMatrix;
 
       out vec3 normal;
 
       void main() {
         gl_Position =  vec4(vPosition, 1.0) * uModelViewMatrix * uProjectionMatrix;
-        normal = (uModelViewMatrix * vec4(vNormal, 1.0)).xyz;
+        normal = (uModelViewMatrix * uNormalMatrix * vec4(vNormal, 1.0)).xyz;
       }
     </script>
     <script id="fragment-shader" type="x-shader/x-fragment">
