@@ -17,6 +17,14 @@ import {
   mat4Scale,
   mat4Translation,
 } from "./gl/mat4";
+import {
+  quat,
+  quatMul,
+  quatRotationAboutX,
+  quatRotationAboutY,
+  quatRotationAboutZ,
+  quatToMat4,
+} from "./gl/quat";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const gl = canvas.getContext("webgl2")!;
@@ -57,6 +65,8 @@ window.addEventListener("keyup", (event) => {
   keys[event.key] = false;
 });
 
+const q = quat();
+
 const position = vec3(0, 0, 0);
 const rotation = vec3();
 let scale = 0.5;
@@ -72,6 +82,10 @@ const cameraTransform = mat4LookAt(
 );
 const inverseCameraTransform = mat4Inv(mat4(), cameraTransform);
 
+const xRot = quatRotationAboutX(quat(), 0.01);
+const yRot = quatRotationAboutY(quat(), 0.01);
+const zRot = quatRotationAboutZ(quat(), 0.01);
+
 const render = () => {
   // draw it
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -80,15 +94,19 @@ const render = () => {
 
   const transform = mat4Identity(mat4());
   const translate = mat4Translation(mat4(), position);
-  const rotX = mat4RotationX(mat4(), rotation[0]);
-  const rotY = mat4RotationY(mat4(), rotation[1]);
-  const rotZ = mat4RotationZ(mat4(), rotation[2]);
+
+  const r = quatToMat4(mat4(), q);
+
+  // const rotX = mat4RotationX(mat4(), rotation[0]);
+  // const rotY = mat4RotationY(mat4(), rotation[1]);
+  // const rotZ = mat4RotationZ(mat4(), rotation[2]);
   const s = mat4Scale(mat4(), vec3(scale, scale, scale));
 
   mat4Mul(transform, transform, s);
-  mat4Mul(transform, transform, rotX);
-  mat4Mul(transform, transform, rotY);
-  mat4Mul(transform, transform, rotZ);
+  mat4Mul(transform, transform, r);
+  // mat4Mul(transform, transform, rotX);
+  // mat4Mul(transform, transform, rotY);
+  // mat4Mul(transform, transform, rotZ);
   mat4Mul(transform, transform, translate);
 
   model.prepare(gl, {
@@ -100,6 +118,10 @@ const render = () => {
     // },
   });
   model.draw(gl);
+
+  quatMul(q, q, xRot);
+  quatMul(q, q, yRot);
+  quatMul(q, q, zRot);
 
   // ux stuff
 
