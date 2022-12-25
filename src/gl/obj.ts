@@ -1,5 +1,6 @@
 import { vec3, Vec3 } from "./vec3";
 import Geometry from "./geometry";
+import { NormalBuffer, PositionBuffer } from "./buffers";
 
 export function loadObj(data: string) {
   const lines = data.split("\n");
@@ -43,10 +44,11 @@ export function loadObj(data: string) {
     }
   }
 
-  const g = new Geometry();
-  g.vertices = new Float32Array(allVertices);
-  g.normals = new Float32Array(allNormals);
-  g.indices = new Uint16Array(indices);
-
-  return g;
+  return new Geometry(
+    {
+      [PositionBuffer]: new Float32Array(allVertices),
+      [NormalBuffer]: new Float32Array(allNormals),
+    },
+    new Uint16Array(indices)
+  );
 }

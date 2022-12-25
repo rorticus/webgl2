@@ -1,27 +1,26 @@
-import {
-  AttributeSource,
-  IBO,
-  IndexBuffer,
-  NormalBuffer,
-  PositionBuffer,
-  VBO,
-} from "./buffers";
+import { AttributeSource, IBO, IndexBuffer, VBO } from "./buffers";
 
 class Geometry {
-  vertices: Float32Array = new Float32Array();
-  normals: Float32Array = new Float32Array();
   indices: Uint16Array = new Uint16Array();
+  vertexBufferData: Record<string, Float32Array> = {};
 
-  private positionBuffer: VBO | null = null;
+  private vertexBuffers: Record<string, VBO> = {};
   private indexBuffer: IBO | null = null;
-  private normalBuffer: VBO | null = null;
 
-  getPositionBuffer(gl: WebGL2RenderingContext) {
-    if (!this.positionBuffer) {
-      this.positionBuffer = new VBO(this.vertices);
+  constructor(
+    vertexBufferData: Record<string, Float32Array>,
+    indices: Uint16Array
+  ) {
+    this.vertexBufferData = vertexBufferData;
+    this.indices = indices;
+  }
+
+  getBuffer(buffer: string, gl: WebGL2RenderingContext) {
+    if (!this.vertexBuffers[buffer]) {
+      this.vertexBuffers[buffer] = new VBO(this.vertexBufferData[buffer]);
     }
 
-    return this.positionBuffer.getBuffer(gl);
+    return this.vertexBuffers[buffer].getBuffer(gl);
   }
 
   getIndexBuffer(gl: WebGL2RenderingContext) {
@@ -32,19 +31,15 @@ class Geometry {
     return this.indexBuffer.getBuffer(gl);
   }
 
-  getNormalBuffer(gl: WebGL2RenderingContext) {
-    if (!this.normalBuffer) {
-      this.normalBuffer = new VBO(this.normals);
-    }
-
-    return this.normalBuffer.getBuffer(gl);
-  }
-
   getAttributeSource(gl: WebGL2RenderingContext): AttributeSource {
     return {
-      [PositionBuffer]: this.getPositionBuffer(gl),
       [IndexBuffer]: this.getIndexBuffer(gl),
-      [NormalBuffer]: this.getNormalBuffer(gl),
+      ...Object.keys(this.vertexBufferData).reduce((res, bufferName) => {
+        return {
+          ...res,
+          [bufferName]: this.getBuffer(bufferName, gl),
+        };
+      }, {}),
     };
   }
 

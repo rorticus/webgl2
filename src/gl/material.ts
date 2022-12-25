@@ -11,10 +11,7 @@ class Material {
   vertexShader: WebGLShader;
   fragmentShader: WebGLShader;
 
-  attributes: Record<string, string> = {
-    vPosition: PositionBuffer,
-    vNormal: NormalBuffer,
-  };
+  attributes: string[] = [PositionBuffer, NormalBuffer];
 
   attributeMap: { [key: string]: number } = {};
   uniformMap: { [key: string]: WebGLUniformLocation } = {};
@@ -41,7 +38,7 @@ class Material {
       this.uniformMap[uniform.name] = gl.getUniformLocation(p, uniform.name)!;
     }
 
-    Object.keys(this.attributes).forEach((attributeName) => {
+    this.attributes.forEach((attributeName) => {
       this.attributeMap[attributeName] = gl.getAttribLocation(
         this.program,
         attributeName
@@ -66,8 +63,8 @@ class Material {
       }
     });
 
-    Object.keys(this.attributes).forEach((attributeName) => {
-      const buffer = attributeSource[this.attributes[attributeName]];
+    this.attributes.forEach((attributeName) => {
+      const buffer = attributeSource[attributeName];
       const attributePosition = this.attributeMap[attributeName];
 
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
