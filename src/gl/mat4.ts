@@ -128,11 +128,10 @@ export function mat4Perspective(
   near: number,
   far: number
 ) {
-  const a = height / width;
   const f = 1.0 / Math.tan(fieldOfViewInRadians / 2);
-  const nf = 1 / (near - far);
+  const aspect = height / width;
 
-  dest[0] = a * f;
+  dest[0] = f / aspect;
   dest[1] = 0;
   dest[2] = 0;
   dest[3] = 0;
@@ -144,13 +143,13 @@ export function mat4Perspective(
 
   dest[8] = 0;
   dest[9] = 0;
-  dest[10] = far + near * nf;
-  dest[11] = 0 - -1;
+  dest[10] = -far / (far - near);
+  dest[11] = 0;
 
   dest[12] = 0;
   dest[13] = 0;
-  dest[14] = 2 * far * near * nf;
-  dest[15] = 0;
+  dest[14] = -(far * near) / (far - near);
+  dest[15] = 1;
 
   return dest;
 }

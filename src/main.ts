@@ -8,6 +8,7 @@ import {
   mat4,
   mat4Identity,
   mat4Mul,
+  mat4Perspective,
   mat4Scale,
   mat4Translation,
   mat4Transpose,
@@ -45,14 +46,17 @@ const model = new Model(modelGeometry, material);
 
 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 gl.clearColor(0, 0.25, 0, 1);
-// gl.disable(gl.CULL_FACE);
+
 gl.enable(gl.CULL_FACE);
+gl.enable(gl.DEPTH_TEST);
 
 const q = quat();
 const position = vec3(0, 0, 0);
 let scale = 0.5;
 
 const camera = new Camera();
+// const projection = mat4Identity(mat4());
+const projection = mat4Perspective(mat4(), 1.5, 800, 600, 0.1, 1000);
 
 const xRot = quatRotationAboutX(quat(), 0.001);
 const yRot = quatRotationAboutY(quat(), 0.0001);
@@ -74,11 +78,12 @@ const render = () => {
   mat4Mul(transform, transform, translate);
 
   model.prepare(gl, {
-    uModelViewMatrix: { type: "mat4", value: transform },
-    uProjectionMatrix: { type: "mat4", value: camera.inverseTransform },
+    object: { type: "mat4", value: transform },
+    world: { type: "mat4", value: camera.inverseTransform },
+    projection: { type: "mat4", value: projection },
     uNormalMatrix: {
       type: "mat4",
-      value: mat4Transpose(mat4(), camera.inverseTransform),
+      value: mat4Transpose(mat4(), transform),
     },
   });
   model.draw(gl);

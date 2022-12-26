@@ -12,15 +12,16 @@
       in vec3 position;
       in vec3 normal;
 
-      uniform mat4 uModelViewMatrix;
-      uniform mat4 uProjectionMatrix;
+      uniform mat4 object;
+      uniform mat4 world;
+      uniform mat4 projection;
       uniform mat4 uNormalMatrix;
 
       out vec3 vNormal;
 
       void main() {
-        gl_Position =  vec4(position, 1.0) * uModelViewMatrix * uProjectionMatrix;
-        vNormal = (uModelViewMatrix * uNormalMatrix * vec4(normal, 1.0)).xyz;
+        gl_Position =  vec4(position, 1.0) * object * world * projection;
+        vNormal = (object * uNormalMatrix * vec4(normal, 1.0)).xyz;
       }
     </script>
     <script id="fragment-shader" type="x-shader/x-fragment">
