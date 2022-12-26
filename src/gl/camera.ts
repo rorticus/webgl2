@@ -11,7 +11,7 @@ export class Camera {
 
   dirty = true;
 
-  get camearaTransform() {
+  get cameraTransform() {
     if (this.dirty) {
       this.calculateTransforms();
       this.dirty = false;
