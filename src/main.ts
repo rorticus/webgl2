@@ -1,15 +1,12 @@
 import Material from "./gl/material";
 import { createFragmentShader, createVertexShader } from "./gl/shaders";
 import Model from "./gl/model";
-import { OrbitCamera } from "./gl/orbitcamera";
 import { vec3 } from "./gl/vec3";
 import { loadObj } from "./gl/obj";
 import objModel from "./models/monkey.obj";
 import {
   mat4,
   mat4Identity,
-  mat4Inv,
-  mat4LookAt,
   mat4Mul,
   mat4Scale,
   mat4Translation,
@@ -23,6 +20,7 @@ import {
   quatRotationAboutZ,
   quatToMat4,
 } from "./gl/quat";
+import { Camera } from "./gl/camera";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const gl = canvas.getContext("webgl2")!;
@@ -45,9 +43,6 @@ const material = new Material(
 
 const model = new Model(modelGeometry, material);
 
-const camera = new OrbitCamera();
-camera.position = vec3(2, 2, 2);
-
 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 gl.clearColor(0, 0.25, 0, 1);
 // gl.disable(gl.CULL_FACE);
@@ -57,16 +52,7 @@ const q = quat();
 const position = vec3(0, 0, 0);
 let scale = 0.5;
 
-const cameraPosition = vec3(0, 2, 5);
-const cameraTarget = vec3(0, 0, 0);
-const cameraUp = vec3(0, 1, 0);
-const cameraTransform = mat4LookAt(
-  mat4(),
-  cameraPosition,
-  cameraTarget,
-  cameraUp
-);
-const inverseCameraTransform = mat4Inv(mat4(), cameraTransform);
+const camera = new Camera();
 
 const xRot = quatRotationAboutX(quat(), 0.001);
 const yRot = quatRotationAboutY(quat(), 0.0001);
@@ -89,10 +75,10 @@ const render = () => {
 
   model.prepare(gl, {
     uModelViewMatrix: { type: "mat4", value: transform },
-    uProjectionMatrix: { type: "mat4", value: inverseCameraTransform },
+    uProjectionMatrix: { type: "mat4", value: camera.inverseTransform },
     uNormalMatrix: {
       type: "mat4",
-      value: mat4Transpose(mat4(), inverseCameraTransform),
+      value: mat4Transpose(mat4(), camera.inverseTransform),
     },
   });
   model.draw(gl);
