@@ -20,7 +20,7 @@ class Model {
   }
 
   draw(gl: WebGL2RenderingContext) {
-    this.geometry.draw(gl);
+    this.geometry.draw(gl, this.material.uniformMap);
   }
 }
 

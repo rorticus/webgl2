@@ -1,18 +1,25 @@
-import { AttributeSource, IBO, IndexBuffer, VBO } from "./buffers";
+import { AttributeSource, IBO, VBO } from "./buffers";
+import { setUniform, Uniform } from "./unforms";
+
+interface MaterialGroup {
+  indices: Uint16Array;
+  indexBuffer?: IBO | null;
+  uniforms?: { [key: string]: Uniform };
+}
 
 class Geometry {
-  indices: Uint16Array = new Uint16Array();
   vertexBufferData: Record<string, Float32Array> = {};
 
   private vertexBuffers: Record<string, VBO> = {};
-  private indexBuffer: IBO | null = null;
+
+  groups: MaterialGroup[] = [];
 
   constructor(
     vertexBufferData: Record<string, Float32Array>,
-    indices: Uint16Array
+    groups: MaterialGroup[]
   ) {
     this.vertexBufferData = vertexBufferData;
-    this.indices = indices;
+    this.groups = groups;
   }
 
   getBuffer(buffer: string, gl: WebGL2RenderingContext) {
@@ -23,17 +30,18 @@ class Geometry {
     return this.vertexBuffers[buffer].getBuffer(gl);
   }
 
-  getIndexBuffer(gl: WebGL2RenderingContext) {
-    if (!this.indexBuffer) {
-      this.indexBuffer = new IBO(this.indices);
+  getIndexBuffer(gl: WebGL2RenderingContext, group: number) {
+    const g = this.groups[group];
+
+    if (!g.indexBuffer) {
+      g.indexBuffer = new IBO(g.indices);
     }
 
-    return this.indexBuffer.getBuffer(gl);
+    return g.indexBuffer.getBuffer(gl);
   }
 
   getAttributeSource(gl: WebGL2RenderingContext): AttributeSource {
     return {
-      [IndexBuffer]: this.getIndexBuffer(gl),
       ...Object.keys(this.vertexBufferData).reduce((res, bufferName) => {
         return {
           ...res,
@@ -43,8 +51,22 @@ class Geometry {
     };
   }
 
-  draw(gl: WebGL2RenderingContext) {
-    gl.drawElements(gl.TRIANGLES, this.indices.length, gl.UNSIGNED_SHORT, 0);
+  draw(
+    gl: WebGL2RenderingContext,
+    uniformMap: { [key: string]: WebGLUniformLocation }
+  ) {
+    for (let i = 0; i < this.groups.length; i++) {
+      const g = this.groups[i];
+      const indexBuffer = this.getIndexBuffer(gl, i);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+      const allUniforms = g.uniforms || {};
+      Object.keys(allUniforms).forEach((uniformName) => {
+        setUniform(gl, uniformMap[uniformName], allUniforms[uniformName]);
+      });
+
+      gl.drawElements(gl.TRIANGLES, g.indices.length, gl.UNSIGNED_SHORT, 0);
+    }
   }
 }
 

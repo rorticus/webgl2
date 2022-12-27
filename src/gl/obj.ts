@@ -1,13 +1,31 @@
 import { vec3, Vec3 } from "./vec3";
 import Geometry from "./geometry";
 import { NormalBuffer, PositionBuffer } from "./buffers";
+import { vec4 } from "./vec4";
 
-export function loadObj(data: string) {
+interface MaterialDefiniton {
+  name: string;
+  diffuse: number[];
+  ambient: number[];
+  specularColor: number[];
+  specularExponent: number;
+  density: number;
+  dissolve: number;
+}
+
+export function loadObj(
+  data: string,
+  materials: Record<string, MaterialDefiniton> = {}
+): Geometry {
   const lines = data.split("\n");
 
   const vertices: Vec3[] = [];
   const normals: Vec3[] = [];
-  const indices: number[] = [];
+
+  let currentGroup = "";
+  const groups: Record<string, number[]> = {
+    "": [],
+  };
 
   const allVertices: number[] = [];
   const allNormals: number[] = [];
@@ -38,9 +56,12 @@ export function loadObj(data: string) {
 
           offset += 3;
 
-          indices.push(offset / 3 - 1);
+          groups[currentGroup]!.push(offset / 3 - 1);
         }
       }
+    } else if (line.indexOf("usemtl ") === 0) {
+      currentGroup = line.split(" ")[1];
+      groups[currentGroup] = [];
     }
   }
 
@@ -49,6 +70,42 @@ export function loadObj(data: string) {
       [PositionBuffer]: new Float32Array(allVertices),
       [NormalBuffer]: new Float32Array(allNormals),
     },
-    new Uint16Array(indices)
+
+    Object.keys(groups).map((name) => ({
+      indices: new Uint16Array(groups[name]),
+      uniforms: {
+        diffuse: {
+          type: "vec4",
+          value: vec4(...(materials[name]?.diffuse || [1, 1, 1]), 1),
+        },
+      },
+    }))
   );
+}
+
+export function loadMaterials(mtl: string): Record<string, MaterialDefiniton> {
+  const materials: Record<string, MaterialDefiniton> = {};
+
+  let currentMaterial = "";
+
+  mtl.split("\n").forEach((line) => {
+    const l = line.trim();
+    if (l.startsWith("newmtl")) {
+      currentMaterial = l.split(" ")[1];
+      materials[currentMaterial] = {
+        name: currentMaterial,
+        diffuse: [0, 0, 0],
+        ambient: [0, 0, 0],
+        specularColor: [0, 0, 0],
+        specularExponent: 0,
+        density: 0,
+        dissolve: 0,
+      };
+    } else if (l.startsWith("Kd")) {
+      const values = l.split(" ").map(parseFloat);
+      materials[currentMaterial].diffuse = values.slice(1);
+    }
+  });
+
+  return materials;
 }

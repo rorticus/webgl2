@@ -15,6 +15,7 @@
     "vitest": "^0.25.2"
   },
   "dependencies": {
-    "prettier": "^2.7.1"
+    "prettier": "^2.7.1",
+    "unplugin-mtl": "^0.3.0"
   }
 }

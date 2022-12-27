@@ -1,9 +1,4 @@
-import {
-  AttributeSource,
-  IndexBuffer,
-  NormalBuffer,
-  PositionBuffer,
-} from "./buffers";
+import { AttributeSource, NormalBuffer, PositionBuffer } from "./buffers";
 import { setUniform, Uniforms } from "./unforms";
 
 class Material {
@@ -72,11 +67,6 @@ class Material {
       gl.enableVertexAttribArray(attributePosition);
       gl.bindBuffer(gl.ARRAY_BUFFER, null);
     });
-
-    const indexBuffer = attributeSource[IndexBuffer];
-    if (indexBuffer) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    }
   }
 }
 

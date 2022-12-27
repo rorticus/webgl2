@@ -14,7 +14,6 @@ import { vec3 } from "../gl/vec3";
 
 export class Engine {
   root?: Scene<any, any>;
-
   canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
   projection: Mat4;

@@ -1,0 +1,11 @@
+# Created by Kenney (www.kenney.nl)
+
+newmtl _defaultMat(Clone)
+Kd 0.09938402 0 0.9213632
+
+newmtl wood(Clone)
+Kd 0.9449353 0.2690076 0.05236407
+
+newmtl metalPurple(Clone)
+Kd 0.5304926 0.933 0.404
+
