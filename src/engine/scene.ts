@@ -16,20 +16,25 @@ interface BaseSceneComponents {
 
 interface BaseSceneResources {}
 
+export type System<
+  R extends BaseSceneResources,
+  C extends BaseSceneComponents
+> = (scene: Scene<R, C>, dt: number) => void;
+
 export class Scene<
   R extends BaseSceneResources,
   C extends BaseSceneComponents
 > {
   resources: ResourcePool<R>;
   entities: EntityPool<C>;
-  systems: any;
+  systems: System<R, C>[] = [];
 
   camera: Camera;
 
   constructor() {
     this.resources = new ResourcePool<R>();
     this.entities = new EntityPool<C>();
-    this.systems = {};
+    this.systems = [];
 
     this.camera = new Camera();
   }

@@ -41,8 +41,41 @@ scene.entities.addEntity({
   [PositionComponent]: {
     position: vec3(0, 0, 0),
     orientation: vec3(),
-    scale: 0.5,
+    scale: 0.25,
   },
+});
+
+let mouseX = 0,
+  mouseY = 0;
+let mouseDown = false;
+
+window.addEventListener("mousedown", (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  mouseDown = true;
+});
+
+window.addEventListener("mouseup", () => {
+  mouseDown = false;
+});
+
+window.addEventListener("mousemove", (e) => {
+  let newMouseX = e.clientX;
+  let newMouseY = e.clientY;
+
+  if (mouseDown) {
+    scene.camera.position[0] -= (newMouseX - mouseX) / 25;
+    scene.camera.position[1] += (newMouseY - mouseY) / 25;
+    scene.camera.dirty = true;
+  }
+
+  mouseX = newMouseX;
+  mouseY = newMouseY;
+});
+
+window.addEventListener("wheel", (e) => {
+  scene.camera.position[2] += e.deltaY / 25;
+  scene.camera.dirty = true;
 });
 
 engine.start();

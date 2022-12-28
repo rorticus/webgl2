@@ -46,6 +46,8 @@ export class Engine {
       this.lastTime = now;
       this.elapsed += dt;
 
+      this.root?.systems.forEach((system) => system(this.root!, dt));
+
       this.render();
       requestAnimationFrame(render);
     };
