@@ -20,11 +20,52 @@ export class Engine {
   lastTime: number = 0;
   elapsed = 0;
 
+  private pickerTexture: WebGLTexture;
+  private depthRenderBuffer: WebGLRenderbuffer;
+  private frameBuffer: WebGLFramebuffer;
+
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     const gl = canvas.getContext("webgl2")!;
 
     this.gl = gl;
+
+    this.pickerTexture = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, this.pickerTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      1,
+      1,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null
+    );
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    this.depthRenderBuffer = gl.createRenderbuffer()!;
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 1, 1);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+    this.frameBuffer = gl.createFramebuffer()!;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      this.pickerTexture,
+      0
+    );
+    gl.framebufferRenderbuffer(
+      gl.FRAMEBUFFER,
+      gl.DEPTH_ATTACHMENT,
+      gl.RENDERBUFFER,
+      this.depthRenderBuffer
+    );
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0, 0.25, 0, 1);
@@ -33,7 +74,7 @@ export class Engine {
     gl.enable(gl.DEPTH_TEST);
 
     this.projection = mat4();
-    this.resize(canvas.width, canvas.height);
+    this.resize(canvas.clientWidth, canvas.clientHeight);
   }
 
   start() {
@@ -48,7 +89,14 @@ export class Engine {
 
       this.root?.systems.forEach((system) => system(this.root!, dt));
 
+      // off screen rendering
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.frameBuffer);
       this.render();
+
+      // on screen rendering
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+      this.render();
+
       requestAnimationFrame(render);
     };
 
@@ -62,8 +110,53 @@ export class Engine {
       width,
       height,
       0.1,
-      1000
+      500
     );
+
+    const gl = this.gl;
+
+    gl.deleteTexture(this.pickerTexture);
+    this.pickerTexture = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, this.pickerTexture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      width,
+      height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      null
+    );
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    gl.deleteRenderbuffer(this.depthRenderBuffer);
+    this.depthRenderBuffer = gl.createRenderbuffer()!;
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
+    gl.renderbufferStorage(
+      gl.RENDERBUFFER,
+      gl.DEPTH_COMPONENT16,
+      width,
+      height
+    );
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      this.pickerTexture,
+      0
+    );
+    gl.framebufferRenderbuffer(
+      gl.FRAMEBUFFER,
+      gl.DEPTH_ATTACHMENT,
+      gl.RENDERBUFFER,
+      this.depthRenderBuffer
+    );
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   render() {

@@ -6,7 +6,7 @@ class Material {
   vertexShader: WebGLShader;
   fragmentShader: WebGLShader;
 
-  attributes: string[] = [PositionBuffer, NormalBuffer];
+  attributes: string[] = [PositionBuffer];
 
   attributeMap: { [key: string]: number } = {};
   uniformMap: { [key: string]: WebGLUniformLocation } = {};

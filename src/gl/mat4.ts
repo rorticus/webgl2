@@ -1,5 +1,6 @@
 import { mat3, Mat3, mat3Det } from "./mat3";
-import { vec3, Vec3, vec3Cross, vec3Dot, vec3Normalize, vec3Sub } from "./vec3";
+import { vec3, Vec3, vec3Cross, vec3Normalize, vec3Sub } from "./vec3";
+import { Vec4 } from "./vec4";
 
 export type Mat4 = Float32Array;
 
@@ -128,8 +129,9 @@ export function mat4Perspective(
   near: number,
   far: number
 ) {
-  const f = 1.0 / Math.tan(fieldOfViewInRadians / 2);
-  const aspect = height / width;
+  const f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
+  const rangeInv = 1.0 / (near - far);
+  const aspect = width / height;
 
   dest[0] = f / aspect;
   dest[1] = 0;
@@ -143,13 +145,13 @@ export function mat4Perspective(
 
   dest[8] = 0;
   dest[9] = 0;
-  dest[10] = -far / (far - near);
-  dest[11] = 0;
+  dest[10] = (near + far) * rangeInv;
+  dest[11] = -1;
 
   dest[12] = 0;
   dest[13] = 0;
-  dest[14] = -(far * near) / (far - near);
-  dest[15] = 1;
+  dest[14] = near * far * rangeInv * 2;
+  dest[15] = 0;
 
   return dest;
 }
@@ -332,30 +334,76 @@ export function mat4MulVec3(dest: Vec3, a: Mat4, b: Vec3) {
   return dest;
 }
 
+export function mat4MulVec4(dest: Vec4, a: Mat4, b: Vec4) {
+  const x = b[0];
+  const y = b[1];
+  const z = b[2];
+  const w = b[3];
+
+  dest[0] = a[0] * x + a[4] * y + a[8] * z + a[12] * w;
+  dest[1] = a[1] * x + a[5] * y + a[9] * z + a[13] * w;
+  dest[2] = a[2] * x + a[6] * y + a[10] * z + a[14] * w;
+  dest[3] = a[3] * x + a[7] * y + a[11] * z + a[15] * w;
+
+  return dest;
+}
+
 export function mat4LookAt(dest: Mat4, target: Vec3, position: Vec3, up: Vec3) {
   // https://learn.microsoft.com/en-us/previous-versions/windows/desktop/bb281710(v=vs.85)?redirectedfrom=MSDN
-  const zAxis = vec3Normalize(vec3(), vec3Sub(vec3(), target, position));
+  const zAxis = vec3Normalize(vec3(), vec3Sub(vec3(), position, target));
   const xAxis = vec3Normalize(vec3(), vec3Cross(vec3(), up, zAxis));
   const yAxis = vec3Normalize(vec3(), vec3Cross(vec3(), zAxis, xAxis));
 
   dest[0] = xAxis[0];
-  dest[1] = yAxis[0];
-  dest[2] = zAxis[0];
+  dest[1] = xAxis[1];
+  dest[2] = xAxis[2];
   dest[3] = 0;
 
-  dest[4] = xAxis[1];
+  dest[4] = yAxis[0];
   dest[5] = yAxis[1];
-  dest[6] = zAxis[1];
+  dest[6] = yAxis[2];
   dest[7] = 0;
 
-  dest[8] = xAxis[2];
-  dest[9] = yAxis[2];
+  dest[8] = zAxis[0];
+  dest[9] = zAxis[1];
   dest[10] = zAxis[2];
   dest[11] = 0;
 
-  dest[12] = -vec3Dot(xAxis, position);
-  dest[13] = -vec3Dot(yAxis, position);
-  dest[14] = -vec3Dot(zAxis, position);
+  dest[12] = position[0];
+  dest[13] = position[1];
+  dest[14] = position[2];
+  dest[15] = 1;
+
+  return dest;
+}
+
+export function mat4Ortho(
+  dest: Mat4,
+  left: number,
+  right: number,
+  bottom: number,
+  top: number,
+  near: number,
+  far: number
+) {
+  dest[0] = 2 / (right - left);
+  dest[1] = 0;
+  dest[2] = 0;
+  dest[3] = 0;
+
+  dest[4] = 0;
+  dest[5] = 2 / (top - bottom);
+  dest[6] = 0;
+  dest[7] = 0;
+
+  dest[8] = 0;
+  dest[9] = 0;
+  dest[10] = 2 / (near - far);
+  dest[11] = 0;
+
+  dest[12] = (left + right) / (left - right);
+  dest[13] = (bottom + top) / (bottom - top);
+  dest[14] = (near + far) / (near - far);
   dest[15] = 1;
 
   return dest;

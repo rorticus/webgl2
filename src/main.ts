@@ -8,6 +8,10 @@ import { mtl as objMats } from "./models/bricks.mtl";
 import { Engine } from "./engine/engine";
 import { Scene } from "./engine/scene";
 import { ModelComponent, PositionComponent } from "./engine/components";
+import Geometry from "./gl/geometry";
+import { PositionBuffer } from "./gl/buffers";
+import { vec4 } from "./gl/vec4";
+import { mat4, mat4MulVec3, mat4MulVec4, mat4Print } from "./gl/mat4";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const engine = new Engine(canvas);
@@ -30,18 +34,18 @@ const material = new Material(
   )
 );
 
-const model = new Model(modelGeometry, material);
-
 const scene = new Scene();
 engine.root = scene;
-scene.camera.position = vec3(0, 30, 25);
+scene.camera.position = vec3(0, 0, 15);
+
+const model = new Model(modelGeometry, material);
 
 scene.entities.addEntity({
   [ModelComponent]: model,
   [PositionComponent]: {
     position: vec3(0, 0, 0),
     orientation: vec3(),
-    scale: 0.25,
+    scale: 1,
   },
 });
 
