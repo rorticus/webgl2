@@ -33,6 +33,9 @@ const material = new Material(
 const scene = new Scene();
 engine.root = scene;
 scene.camera.position = vec3(0, 0, 15);
+let yAngle = 0;
+let xAngle = 0;
+let radius = 25;
 
 const model = new Model(modelGeometry, material);
 
@@ -49,6 +52,15 @@ let mouseX = 0,
   mouseY = 0;
 let mouseDown = false;
 
+function calculateCameraPosition() {
+  const x = Math.sin(yAngle) * Math.cos(xAngle) * radius;
+  const y = Math.sin(xAngle) * radius;
+  const z = Math.cos(yAngle) * Math.cos(xAngle) * radius;
+
+  scene.camera.position = vec3(x, y, z);
+  scene.camera.dirty = true;
+}
+
 window.addEventListener("mousedown", (e) => {
   mouseX = e.clientX;
   mouseY = e.clientY;
@@ -64,9 +76,9 @@ window.addEventListener("mousemove", (e) => {
   let newMouseY = e.clientY;
 
   if (mouseDown) {
-    scene.camera.position[0] -= (newMouseX - mouseX) / 25;
-    scene.camera.position[1] += (newMouseY - mouseY) / 25;
-    scene.camera.dirty = true;
+    yAngle += (newMouseX - mouseX) * 0.01;
+    xAngle += (newMouseY - mouseY) * 0.01;
+    calculateCameraPosition();
   }
 
   mouseX = newMouseX;
@@ -74,8 +86,8 @@ window.addEventListener("mousemove", (e) => {
 });
 
 window.addEventListener("wheel", (e) => {
-  scene.camera.position[2] += e.deltaY / 25;
-  scene.camera.dirty = true;
+  radius += e.deltaY * 0.01;
+  calculateCameraPosition();
 });
 
 engine.start();
