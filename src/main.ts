@@ -8,10 +8,6 @@ import { mtl as objMats } from "./models/bricks.mtl";
 import { Engine } from "./engine/engine";
 import { Scene } from "./engine/scene";
 import { ModelComponent, PositionComponent } from "./engine/components";
-import Geometry from "./gl/geometry";
-import { PositionBuffer } from "./gl/buffers";
-import { vec4 } from "./gl/vec4";
-import { mat4, mat4MulVec3, mat4MulVec4, mat4Print } from "./gl/mat4";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const engine = new Engine(canvas);

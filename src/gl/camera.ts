@@ -1,13 +1,5 @@
 import { vec3 } from "./vec3";
-import {
-  mat4,
-  mat4Identity,
-  mat4Inv,
-  mat4LookAt,
-  mat4Mul,
-  mat4Print,
-  mat4Translation,
-} from "./mat4";
+import { mat4, mat4Identity, mat4Inv, mat4LookAt } from "./mat4";
 
 export class Camera {
   position = vec3(0, 0, -5);
