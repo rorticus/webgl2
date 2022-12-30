@@ -1,4 +1,4 @@
-import { AttributeSource, IBO, VBO } from "./buffers";
+import { AttributeSource, IBO, VBO, VBOData } from "./buffers";
 import { setUniform, Uniform } from "./unforms";
 
 interface MaterialGroup {
@@ -8,44 +8,44 @@ interface MaterialGroup {
 }
 
 class Geometry {
-  vertexBufferData: Record<string, Float32Array> = {};
+  vertexBufferData: Record<string, VBOData> = {};
 
   private vertexBuffers: Record<string, VBO> = {};
 
   groups: MaterialGroup[] = [];
 
   constructor(
-    vertexBufferData: Record<string, Float32Array>,
+    vertexBufferData: Record<string, VBOData>,
     groups: MaterialGroup[]
   ) {
     this.vertexBufferData = vertexBufferData;
     this.groups = groups;
   }
 
-  getBuffer(buffer: string, gl: WebGL2RenderingContext) {
+  getBuffer(buffer: string) {
     if (!this.vertexBuffers[buffer]) {
       this.vertexBuffers[buffer] = new VBO(this.vertexBufferData[buffer]);
     }
 
-    return this.vertexBuffers[buffer].getBuffer(gl);
+    return this.vertexBuffers[buffer];
   }
 
-  getIndexBuffer(gl: WebGL2RenderingContext, group: number) {
+  getIndexBuffer(group: number) {
     const g = this.groups[group];
 
     if (!g.indexBuffer) {
       g.indexBuffer = new IBO(g.indices);
     }
 
-    return g.indexBuffer.getBuffer(gl);
+    return g.indexBuffer;
   }
 
-  getAttributeSource(gl: WebGL2RenderingContext): AttributeSource {
+  getAttributeSource(): AttributeSource {
     return {
       ...Object.keys(this.vertexBufferData).reduce((res, bufferName) => {
         return {
           ...res,
-          [bufferName]: this.getBuffer(bufferName, gl),
+          [bufferName]: this.getBuffer(bufferName),
         };
       }, {}),
     };
@@ -57,8 +57,8 @@ class Geometry {
   ) {
     for (let i = 0; i < this.groups.length; i++) {
       const g = this.groups[i];
-      const indexBuffer = this.getIndexBuffer(gl, i);
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      const indexBuffer = this.getIndexBuffer(i);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer.getBuffer(gl));
 
       const allUniforms = g.uniforms || {};
       Object.keys(allUniforms).forEach((uniformName) => {

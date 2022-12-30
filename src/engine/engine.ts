@@ -11,6 +11,11 @@ import {
 } from "../gl/mat4";
 import { ModelComponent, PositionComponent } from "./components";
 import { vec3 } from "../gl/vec3";
+import { GBuffer } from "../gl/buffers";
+import Model from "../gl/model";
+import Geometry from "../gl/geometry";
+import Material from "../gl/material";
+import { createFragmentShader, createVertexShader } from "../gl/shaders";
 
 export class Engine {
   root?: Scene<any, any>;
@@ -20,9 +25,8 @@ export class Engine {
   lastTime: number = 0;
   elapsed = 0;
 
-  private pickerTexture: WebGLTexture;
-  private depthRenderBuffer: WebGLRenderbuffer;
-  private frameBuffer: WebGLFramebuffer;
+  gBuffer: GBuffer;
+  private finalQuad: Model;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -30,48 +34,76 @@ export class Engine {
 
     this.gl = gl;
 
-    this.pickerTexture = gl.createTexture()!;
-    gl.bindTexture(gl.TEXTURE_2D, this.pickerTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      1,
-      1,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null
-    );
-    gl.bindTexture(gl.TEXTURE_2D, null);
+    this.gBuffer = new GBuffer(gl);
 
-    this.depthRenderBuffer = gl.createRenderbuffer()!;
-    gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, 1, 1);
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-
-    this.frameBuffer = gl.createFramebuffer()!;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      this.pickerTexture,
-      0
-    );
-    gl.framebufferRenderbuffer(
-      gl.FRAMEBUFFER,
-      gl.DEPTH_ATTACHMENT,
-      gl.RENDERBUFFER,
-      this.depthRenderBuffer
-    );
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (!gl.getExtension("EXT_color_buffer_float")) {
+      throw new Error(
+        "Required extension EXT_color_buffer_float is not available."
+      );
+    }
 
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-    gl.clearColor(0, 0.25, 0, 1);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clearDepth(1.0);
+    gl.clearStencil(0);
 
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
+
+    this.finalQuad = new Model(
+      new Geometry(
+        {
+          position: {
+            type: "vec3",
+            data: new Float32Array([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0]),
+          },
+          uv: {
+            type: "vec2",
+            data: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]),
+          },
+        },
+        [
+          {
+            indices: new Uint16Array([0, 1, 2, 0, 2, 3]),
+          },
+        ]
+      ),
+      new Material(
+        gl,
+        createVertexShader(
+          gl,
+          `#version 300 es
+precision mediump float;
+
+in vec3 position;
+in vec2 uv;
+
+out vec2 vUv;
+
+void main() {
+  gl_Position = vec4(position, 1.0);
+  vUv = uv;
+}      
+      `
+        ),
+        createFragmentShader(
+          gl,
+          `#version 300 es
+precision mediump float;
+
+uniform sampler2D positionTexture;
+
+in vec2 vUv;
+
+out vec4 color;
+
+void main() {
+  color = vec4(texture(positionTexture, vUv).xyz, 1.0);
+}
+        `
+        )
+      )
+    );
 
     this.projection = mat4();
     this.resize(canvas.clientWidth, canvas.clientHeight);
@@ -89,13 +121,56 @@ export class Engine {
 
       this.root?.systems.forEach((system) => system(this.root!, dt));
 
+      const gl = this.gl;
+
+      // g buffer pass
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.renderFrameBuffer);
+
+      gl.clear(
+        gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT
+      );
+
+      gl.disable(gl.BLEND);
+
+      gl.enable(gl.CULL_FACE);
+      gl.cullFace(gl.BACK);
+
       // off screen rendering
-      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.frameBuffer);
       this.render();
 
-      // on screen rendering
-      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
+      // lighting pass
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.lightingFrameBuffer);
+
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE);
+
+      gl.enable(gl.STENCIL_TEST);
+      gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.INCR_WRAP, gl.KEEP);
+      gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.DECR_WRAP, gl.KEEP);
+
+      gl.depthMask(false);
+
+      gl.cullFace(gl.FRONT);
+
       this.render();
+
+      gl.disable(gl.BLEND);
+      gl.cullFace(gl.BACK);
+      gl.enable(gl.CULL_FACE);
+      gl.depthMask(true);
+      gl.disable(gl.STENCIL_TEST);
+      gl.enable(gl.DEPTH_TEST);
+
+      // final pass
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+      this.finalQuad.prepare(gl, {
+        positionTexture: {
+          type: "texture0",
+          value: this.gBuffer.color.texture,
+        },
+      });
+      this.finalQuad.draw(gl);
 
       requestAnimationFrame(render);
     };
@@ -113,50 +188,7 @@ export class Engine {
       500
     );
 
-    const gl = this.gl;
-
-    gl.deleteTexture(this.pickerTexture);
-    this.pickerTexture = gl.createTexture()!;
-    gl.bindTexture(gl.TEXTURE_2D, this.pickerTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA,
-      width,
-      height,
-      0,
-      gl.RGBA,
-      gl.UNSIGNED_BYTE,
-      null
-    );
-    gl.bindTexture(gl.TEXTURE_2D, null);
-
-    gl.deleteRenderbuffer(this.depthRenderBuffer);
-    this.depthRenderBuffer = gl.createRenderbuffer()!;
-    gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderBuffer);
-    gl.renderbufferStorage(
-      gl.RENDERBUFFER,
-      gl.DEPTH_COMPONENT16,
-      width,
-      height
-    );
-    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      this.pickerTexture,
-      0
-    );
-    gl.framebufferRenderbuffer(
-      gl.FRAMEBUFFER,
-      gl.DEPTH_ATTACHMENT,
-      gl.RENDERBUFFER,
-      this.depthRenderBuffer
-    );
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.gBuffer.resize(this.gl);
   }
 
   render() {

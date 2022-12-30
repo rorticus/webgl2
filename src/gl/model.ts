@@ -14,7 +14,7 @@ class Model {
   prepare(gl: WebGL2RenderingContext, renderUniforms: Uniforms) {
     this.material.prepare(
       gl,
-      this.geometry.getAttributeSource(gl),
+      this.geometry.getAttributeSource(),
       renderUniforms
     );
   }

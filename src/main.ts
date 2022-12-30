@@ -8,6 +8,7 @@ import { mtl as objMats } from "./models/bricks.mtl";
 import { Engine } from "./engine/engine";
 import { Scene } from "./engine/scene";
 import { ModelComponent, PositionComponent } from "./engine/components";
+import { drawWebglTexture } from "./gl/helpers";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const engine = new Engine(canvas);
@@ -91,5 +92,15 @@ window.addEventListener("wheel", (e) => {
 });
 
 engine.start();
+
+// setTimeout(() => {
+//   const color = drawWebglTexture(engine.gl, engine.gBuffer.color.texture);
+//   const position = drawWebglTexture(engine.gl, engine.gBuffer.position.texture);
+//   const normal = drawWebglTexture(engine.gl, engine.gBuffer.normal.texture);
+//
+//   document.body.appendChild(color);
+//   document.body.appendChild(position);
+//   document.body.appendChild(normal);
+// }, 100);
 
 export {};

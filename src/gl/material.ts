@@ -1,12 +1,10 @@
-import { AttributeSource, NormalBuffer, PositionBuffer } from "./buffers";
+import { AttributeSource } from "./buffers";
 import { setUniform, Uniforms } from "./unforms";
 
 class Material {
   program: WebGLProgram;
   vertexShader: WebGLShader;
   fragmentShader: WebGLShader;
-
-  attributes: string[] = [PositionBuffer];
 
   attributeMap: { [key: string]: number } = {};
   uniformMap: { [key: string]: WebGLUniformLocation } = {};
@@ -33,12 +31,14 @@ class Material {
       this.uniformMap[uniform.name] = gl.getUniformLocation(p, uniform.name)!;
     }
 
-    this.attributes.forEach((attributeName) => {
-      this.attributeMap[attributeName] = gl.getAttribLocation(
-        this.program,
-        attributeName
+    const numAttributes = gl.getProgramParameter(p, gl.ACTIVE_ATTRIBUTES);
+    for (let i = 0; i < numAttributes; i++) {
+      const attribute = gl.getActiveAttrib(p, i)!;
+      this.attributeMap[attribute.name] = gl.getAttribLocation(
+        p,
+        attribute.name
       );
-    });
+    }
   }
 
   prepare(
@@ -58,14 +58,9 @@ class Material {
       }
     });
 
-    this.attributes.forEach((attributeName) => {
-      const buffer = attributeSource[attributeName];
-      const attributePosition = this.attributeMap[attributeName];
-
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.vertexAttribPointer(attributePosition, 3, gl.FLOAT, false, 0, 0);
-      gl.enableVertexAttribArray(attributePosition);
-      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    Object.keys(this.attributeMap).forEach((attributeName) => {
+      const vbo = attributeSource[attributeName];
+      vbo?.bindToAttribute(gl, this.attributeMap[attributeName]);
     });
   }
 }

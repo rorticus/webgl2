@@ -67,8 +67,8 @@ export function loadObj(
 
   return new Geometry(
     {
-      [PositionBuffer]: new Float32Array(allVertices),
-      [NormalBuffer]: new Float32Array(allNormals),
+      [PositionBuffer]: { type: "vec3", data: new Float32Array(allVertices) },
+      [NormalBuffer]: { type: "vec3", data: new Float32Array(allNormals) },
     },
 
     Object.keys(groups).map((name) => ({
