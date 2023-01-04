@@ -189,11 +189,21 @@ export class Engine {
       const localTransform = mat4();
 
       models.forEach((modelEntity) => {
-        const model = lights
-          ? getLightModel(
-              this.root?.entities.getComponent(modelEntity, LightComponent)
-            )
-          : this.root?.entities.getComponent(modelEntity, ModelComponent);
+        let model: Model | null = null;
+        let extraUniforms: Uniforms = {};
+
+        if (lights) {
+          let result = getLightModel(
+            this.root?.entities.getComponent(modelEntity, LightComponent)
+          );
+
+          if (result) {
+            model = result.model;
+            extraUniforms = result.uniforms;
+          }
+        } else {
+          model = this.root?.entities.getComponent(modelEntity, ModelComponent);
+        }
 
         mat4Identity(localTransform);
 
@@ -227,6 +237,7 @@ export class Engine {
           invWorld: { type: "mat4", value: invWorld },
           projection: { type: "mat4", value: projectionMatrix },
           elapsed: { type: "float", value: this.elapsed },
+          ...extraUniforms,
         };
 
         if (lights) {
@@ -242,16 +253,10 @@ export class Engine {
             type: "texture2",
             value: this.gBuffer.color.texture,
           };
-
-          uniforms["lightColor"] = {
-            type: "vec3",
-            value: vec3(1, 1, 1),
-          };
-          uniforms["lightIntensity"] = { type: "float", value: 1 };
         }
 
-        model.prepare(gl, uniforms);
-        model.draw(gl);
+        model?.prepare(gl, uniforms);
+        model?.draw(gl);
       });
     }
   }

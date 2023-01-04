@@ -44,6 +44,20 @@ scene.entities.addEntity({
 
 scene.entities.addEntity({
   [LightComponent]: {
+    type: "directional",
+    color: vec3(1, 1, 1),
+    intensity: 1,
+    direction: vec3(1, 1, 1),
+  },
+  [PositionComponent]: {
+    position: vec3(2, 2, -4),
+    orientation: vec3(),
+    scale: 10,
+  },
+});
+
+scene.entities.addEntity({
+  [LightComponent]: {
     type: "point",
     color: vec3(1, 1, 1),
     intensity: 1,
@@ -51,7 +65,7 @@ scene.entities.addEntity({
   [PositionComponent]: {
     position: vec3(2, 2, -4),
     orientation: vec3(),
-    scale: 10,
+    scale: 5,
   },
 });
 
