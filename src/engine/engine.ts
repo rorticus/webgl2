@@ -3,19 +3,34 @@ import {
   mat4,
   Mat4,
   mat4Identity,
+  mat4Inv,
   mat4Mul,
   mat4Perspective,
   mat4Scale,
   mat4Translation,
-  mat4Transpose,
 } from "../gl/mat4";
-import { ModelComponent, PositionComponent } from "./components";
+import {
+  LightComponent,
+  ModelComponent,
+  PositionComponent,
+} from "./components";
 import { vec3 } from "../gl/vec3";
 import { GBuffer } from "../gl/buffers";
 import Model from "../gl/model";
 import Geometry from "../gl/geometry";
 import Material from "../gl/material";
-import { createFragmentShader, createVertexShader } from "../gl/shaders";
+import accumVert from "../shaders/accum.vert";
+import accumFrag from "../shaders/accum.frag";
+import { getLightModel } from "./lighting";
+import { Uniforms } from "../gl/unforms";
+import {
+  quat,
+  quatMul,
+  quatRotationAboutX,
+  quatRotationAboutY,
+  quatRotationAboutZ,
+  quatToMat4,
+} from "../gl/quat";
 
 export class Engine {
   root?: Scene<any, any>;
@@ -68,41 +83,7 @@ export class Engine {
           },
         ]
       ),
-      new Material(
-        gl,
-        createVertexShader(
-          gl,
-          `#version 300 es
-precision mediump float;
-
-in vec3 position;
-in vec2 uv;
-
-out vec2 vUv;
-
-void main() {
-  gl_Position = vec4(position, 1.0);
-  vUv = uv;
-}      
-      `
-        ),
-        createFragmentShader(
-          gl,
-          `#version 300 es
-precision mediump float;
-
-uniform sampler2D positionTexture;
-
-in vec2 vUv;
-
-out vec4 color;
-
-void main() {
-  color = vec4(texture(positionTexture, vUv).xyz, 1.0);
-}
-        `
-        )
-      )
+      new Material(accumVert, accumFrag)
     );
 
     this.projection = mat4();
@@ -138,27 +119,28 @@ void main() {
       // off screen rendering
       this.render();
 
-      // lighting pass
+      // // lighting pass
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.lightingFrameBuffer);
 
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE);
 
-      gl.enable(gl.STENCIL_TEST);
-      gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.INCR_WRAP, gl.KEEP);
-      gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.DECR_WRAP, gl.KEEP);
+      // gl.enable(gl.STENCIL_TEST);
+      // gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.INCR_WRAP, gl.KEEP);
+      // gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.DECR_WRAP, gl.KEEP);
 
+      gl.disable(gl.DEPTH_TEST);
       gl.depthMask(false);
 
       gl.cullFace(gl.FRONT);
 
-      this.render();
+      this.render(true);
 
       gl.disable(gl.BLEND);
       gl.cullFace(gl.BACK);
       gl.enable(gl.CULL_FACE);
       gl.depthMask(true);
-      gl.disable(gl.STENCIL_TEST);
+      // gl.disable(gl.STENCIL_TEST);
       gl.enable(gl.DEPTH_TEST);
 
       // final pass
@@ -167,7 +149,7 @@ void main() {
       this.finalQuad.prepare(gl, {
         positionTexture: {
           type: "texture0",
-          value: this.gBuffer.color.texture,
+          value: this.gBuffer.accum.texture,
         },
       });
       this.finalQuad.draw(gl);
@@ -191,7 +173,7 @@ void main() {
     this.gBuffer.resize(this.gl);
   }
 
-  render() {
+  render(lights = false) {
     const gl = this.gl;
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -201,16 +183,19 @@ void main() {
       const worldMatrix = this.root.camera.inverseTransform;
       const projectionMatrix = this.projection;
 
-      const models = this.root.entities.getEntities(ModelComponent);
-      const transform = mat4();
+      const models = this.root.entities.getEntities(
+        lights ? LightComponent : ModelComponent
+      );
+      const localTransform = mat4();
 
       models.forEach((modelEntity) => {
-        const model = this.root?.entities.getComponent(
-          modelEntity,
-          ModelComponent
-        );
+        const model = lights
+          ? getLightModel(
+              this.root?.entities.getComponent(modelEntity, LightComponent)
+            )
+          : this.root?.entities.getComponent(modelEntity, ModelComponent);
 
-        mat4Identity(transform);
+        mat4Identity(localTransform);
 
         const position = this.root?.entities.getComponent(
           modelEntity,
@@ -223,21 +208,49 @@ void main() {
             vec3(position.scale, position.scale, position.scale)
           );
 
-          mat4Mul(transform, transform, s);
-          // mat4Mul(transform, transform, r);
-          mat4Mul(transform, transform, translate);
+          const q = quat();
+          quatMul(q, q, quatRotationAboutX(quat(), position.orientation[0]));
+          quatMul(q, q, quatRotationAboutY(quat(), position.orientation[1]));
+          quatMul(q, q, quatRotationAboutZ(quat(), position.orientation[2]));
+          const r = quatToMat4(mat4(), q);
+
+          mat4Mul(localTransform, localTransform, s);
+          mat4Mul(localTransform, localTransform, r);
+          mat4Mul(localTransform, localTransform, translate);
         }
 
-        model.prepare(gl, {
-          object: { type: "mat4", value: transform },
-          world: { type: "mat4", value: worldMatrix },
+        const world = mat4Mul(mat4(), localTransform, worldMatrix);
+        const invWorld = mat4Inv(mat4(), world);
+
+        const uniforms: Uniforms = {
+          world: { type: "mat4", value: world },
+          invWorld: { type: "mat4", value: invWorld },
           projection: { type: "mat4", value: projectionMatrix },
-          uNormalMatrix: {
-            type: "mat4",
-            value: mat4Transpose(mat4(), transform),
-          },
           elapsed: { type: "float", value: this.elapsed },
-        });
+        };
+
+        if (lights) {
+          uniforms.positionTexture = {
+            type: "texture0",
+            value: this.gBuffer.position.texture,
+          };
+          uniforms.normalTexture = {
+            type: "texture1",
+            value: this.gBuffer.normal.texture,
+          };
+          uniforms.diffuseTexture = {
+            type: "texture2",
+            value: this.gBuffer.color.texture,
+          };
+
+          uniforms["lightColor"] = {
+            type: "vec3",
+            value: vec3(1, 1, 1),
+          };
+          uniforms["lightIntensity"] = { type: "float", value: 1 };
+        }
+
+        model.prepare(gl, uniforms);
         model.draw(gl);
       });
     }

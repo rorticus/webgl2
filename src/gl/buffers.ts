@@ -203,6 +203,8 @@ export class GBuffer {
       gl.COLOR_ATTACHMENT3,
     ]);
 
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
     // lighting frame buffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightingFrameBuffer);
 

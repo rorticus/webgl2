@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "prettier": "^2.7.1",
-    "unplugin-mtl": "^0.3.0"
+    "unplugin-mtl": "^0.3.0",
+    "vite-plugin-glsl": "^1.0.2"
   }
 }

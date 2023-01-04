@@ -1,4 +1,5 @@
 import { Vec4 } from "./vec4";
+import { Vec3 } from "./vec3";
 
 export interface IntUniform {
   type: "int";
@@ -15,6 +16,11 @@ export interface Vec4Uniform {
   value: Vec4;
 }
 
+export interface Vec3Uniform {
+  type: "vec3";
+  value: Vec3;
+}
+
 export interface Mat4Uniform {
   type: "mat4";
   value: Vec4;
@@ -29,6 +35,7 @@ export type Uniform =
   | IntUniform
   | FloatUniform
   | Vec4Uniform
+  | Vec3Uniform
   | Mat4Uniform
   | TextureUniform;
 export type Uniforms = Record<string, Uniform>;
@@ -47,6 +54,9 @@ export function setUniform(
       break;
     case "vec4":
       gl.uniform4fv(uniform, value.value);
+      break;
+    case "vec3":
+      gl.uniform3fv(uniform, value.value);
       break;
     case "mat4":
       gl.uniformMatrix4fv(uniform, false, value.value);

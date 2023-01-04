@@ -1,9 +1,14 @@
 import { ResourcePool } from "./resources";
 import { Camera } from "../gl/camera";
 import { EntityPool } from "./entities";
-import { ModelComponent, PositionComponent } from "./components";
+import {
+  LightComponent,
+  ModelComponent,
+  PositionComponent,
+} from "./components";
 import Model from "../gl/model";
 import { Vec3 } from "../gl/vec3";
+import { Light } from "./lighting";
 
 interface BaseSceneComponents {
   [ModelComponent]: Model;
@@ -12,6 +17,8 @@ interface BaseSceneComponents {
     orientation: Vec3;
     scale: number;
   };
+
+  [LightComponent]: Light;
 }
 
 interface BaseSceneResources {}

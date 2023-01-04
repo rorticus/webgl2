@@ -1,7 +1,6 @@
 import { vec3, Vec3 } from "./vec3";
 import Geometry from "./geometry";
 import { NormalBuffer, PositionBuffer } from "./buffers";
-import { vec4 } from "./vec4";
 
 interface MaterialDefiniton {
   name: string;
@@ -75,8 +74,12 @@ export function loadObj(
       indices: new Uint16Array(groups[name]),
       uniforms: {
         diffuse: {
-          type: "vec4",
-          value: vec4(...(materials[name]?.diffuse || [1, 1, 1]), 1),
+          type: "vec3",
+          value: vec3(...(materials[name]?.diffuse || [1, 1, 1])),
+        },
+        emissive: {
+          type: "vec3",
+          value: vec3(...(materials[name]?.ambient || [0, 0, 0])),
         },
       },
     }))
@@ -104,6 +107,9 @@ export function loadMaterials(mtl: string): Record<string, MaterialDefiniton> {
     } else if (l.startsWith("Kd")) {
       const values = l.split(" ").map(parseFloat);
       materials[currentMaterial].diffuse = values.slice(1);
+    } else if (l.startsWith("Ka")) {
+      const values = l.split(" ").map(parseFloat);
+      materials[currentMaterial].ambient = values.slice(1);
     }
   });
 
