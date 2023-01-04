@@ -1,0 +1,11 @@
+# Created by Kenney (www.kenney.nl)
+
+newmtl foliage(Clone)
+Kd 0 0.655 0.486
+
+newmtl bricks(Clone)
+Kd 1 0.392 0.306
+
+newmtl wood(Clone)
+Kd 0.84 0.435 0.305
+

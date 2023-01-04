@@ -2,8 +2,8 @@ import Material from "./gl/material";
 import Model from "./gl/model";
 import { vec3 } from "./gl/vec3";
 import { loadMaterials, loadObj } from "./gl/obj";
-import objModel from "./models/bricks.obj";
-import { mtl as objMats } from "./models/bricks.mtl";
+import objModel from "./models/scene.obj";
+import { mtl as objMats } from "./models/scene.mtl";
 import { Engine } from "./engine/engine";
 import { Scene } from "./engine/scene";
 import {
@@ -25,9 +25,9 @@ const material = new Material(gbufferVert, gbufferFrag);
 const scene = new Scene();
 engine.root = scene;
 scene.camera.position = vec3(0, 0, 15);
-let yAngle = 0;
-let xAngle = 0;
-let radius = 10;
+let yAngle = Math.PI / 4;
+let xAngle = Math.PI / 4;
+let radius = 5;
 
 const model = new Model(modelGeometry, material);
 
@@ -65,7 +65,7 @@ scene.entities.addEntity({
   [PositionComponent]: {
     position: vec3(2, 2, -4),
     orientation: vec3(),
-    scale: 5,
+    scale: 7,
   },
 });
 
