@@ -23,7 +23,7 @@ const modelGeometry = loadObj(objModel, modelMaterials);
 const material = new Material(gbufferVert, gbufferFrag);
 
 const scene = new Scene();
-engine.root = scene;
+engine.setRootScene(scene);
 scene.camera.position = vec3(0, 0, 15);
 let yAngle = Math.PI / 4;
 let xAngle = Math.PI / 4;
@@ -48,6 +48,7 @@ scene.entities.addEntity({
     color: vec3(1, 1, 1),
     intensity: 1,
     direction: vec3(1, 1, 1),
+    shadows: true,
   },
   [PositionComponent]: {
     position: vec3(2, 2, -4),

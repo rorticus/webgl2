@@ -125,9 +125,11 @@ export class GBuffer {
   depth: RenderTarget;
   color: RenderTarget;
   accum: RenderTarget;
+  shadowDepth: RenderTarget;
 
   renderFrameBuffer: WebGLFramebuffer;
   lightingFrameBuffer: WebGLFramebuffer;
+  shadowFrameBuffer: WebGLFramebuffer;
 
   constructor(gl: WebGL2RenderingContext) {
     this.position = new RenderTarget(gl.RGBA32F, gl);
@@ -135,9 +137,11 @@ export class GBuffer {
     this.color = new RenderTarget(gl.RGBA32F, gl);
     this.depth = new RenderTarget(gl.DEPTH24_STENCIL8, gl);
     this.accum = new RenderTarget(gl.RGBA32F, gl);
+    this.shadowDepth = new RenderTarget(gl.DEPTH_COMPONENT32F, gl);
 
     this.renderFrameBuffer = gl.createFramebuffer()!;
     this.lightingFrameBuffer = gl.createFramebuffer()!;
+    this.shadowFrameBuffer = gl.createFramebuffer()!;
 
     this.resize(gl);
   }
@@ -147,6 +151,7 @@ export class GBuffer {
     this.normal.resize(gl);
     this.depth.resize(gl);
     this.color.resize(gl);
+    this.shadowDepth.resize(gl);
 
     // render frame buffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.renderFrameBuffer);
@@ -190,7 +195,7 @@ export class GBuffer {
     // depth
     gl.framebufferTexture2D(
       gl.FRAMEBUFFER,
-      gl.DEPTH_STENCIL_ATTACHMENT,
+      gl.DEPTH_ATTACHMENT,
       gl.TEXTURE_2D,
       this.depth.texture,
       0
@@ -215,14 +220,20 @@ export class GBuffer {
       this.accum.texture,
       0
     );
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    // shadow frame buffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFrameBuffer);
     gl.framebufferTexture2D(
       gl.FRAMEBUFFER,
-      gl.DEPTH_STENCIL_ATTACHMENT,
+      gl.DEPTH_ATTACHMENT,
       gl.TEXTURE_2D,
-      this.depth.texture,
+      this.shadowDepth.texture,
       0
     );
-    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    gl.drawBuffers([gl.NONE]);
+    gl.readBuffer(gl.NONE);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 }

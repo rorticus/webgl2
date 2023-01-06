@@ -5,7 +5,6 @@ import {
   mat4Identity,
   mat4Inv,
   mat4Mul,
-  mat4Perspective,
   mat4Scale,
   mat4Translation,
 } from "../gl/mat4";
@@ -14,7 +13,7 @@ import {
   ModelComponent,
   PositionComponent,
 } from "./components";
-import { vec3 } from "../gl/vec3";
+import { Vec3, vec3 } from "../gl/vec3";
 import { GBuffer } from "../gl/buffers";
 import Model from "../gl/model";
 import Geometry from "../gl/geometry";
@@ -32,11 +31,34 @@ import {
   quatToMat4,
 } from "../gl/quat";
 
+function positionToMat4(
+  dest: Mat4,
+  position: Vec3,
+  orientation: Vec3,
+  scale: number
+): Mat4 {
+  mat4Identity(dest);
+
+  const translate = mat4Translation(mat4(), position);
+  const s = mat4Scale(mat4(), vec3(scale, scale, scale));
+
+  const q = quat();
+  quatMul(q, q, quatRotationAboutX(quat(), orientation[0]));
+  quatMul(q, q, quatRotationAboutY(quat(), orientation[1]));
+  quatMul(q, q, quatRotationAboutZ(quat(), orientation[2]));
+  const r = quatToMat4(mat4(), q);
+
+  mat4Mul(dest, dest, s);
+  mat4Mul(dest, dest, r);
+  mat4Mul(dest, dest, translate);
+
+  return dest;
+}
+
 export class Engine {
   root?: Scene<any, any>;
   canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
-  projection: Mat4;
   lastTime: number = 0;
   elapsed = 0;
 
@@ -86,7 +108,6 @@ export class Engine {
       new Material(accumVert, accumFrag)
     );
 
-    this.projection = mat4();
     this.resize(canvas.clientWidth, canvas.clientHeight);
   }
 
@@ -143,6 +164,20 @@ export class Engine {
       // gl.disable(gl.STENCIL_TEST);
       gl.enable(gl.DEPTH_TEST);
 
+      // shadow maps
+      this.root?.entities.getEntities(LightComponent).forEach((entity) => {
+        const light = this.root?.entities.getComponent(entity, LightComponent);
+        if (light.shadows) {
+          const position = this.root?.entities.getComponent(
+            entity,
+            PositionComponent
+          );
+          if (position) {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.shadowFrameBuffer);
+          }
+        }
+      });
+
       // final pass
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
@@ -161,16 +196,16 @@ export class Engine {
   }
 
   resize(width: number, height: number) {
-    mat4Perspective(
-      this.projection,
-      (Math.PI * 90) / 180,
-      width,
-      height,
-      0.1,
-      500
-    );
-
+    this.root?.camera?.resize(width, height);
     this.gBuffer.resize(this.gl);
+  }
+
+  setRootScene(scene: Scene<any, any>) {
+    this.root = scene;
+    this.root.camera.resize(
+      this.gl.drawingBufferWidth,
+      this.gl.drawingBufferHeight
+    );
   }
 
   render(lights = false) {
@@ -181,7 +216,7 @@ export class Engine {
     if (this.root) {
       // render each entity in the scene
       const worldMatrix = this.root.camera.inverseTransform;
-      const projectionMatrix = this.projection;
+      const projectionMatrix = this.root.camera.projection;
 
       const models = this.root.entities.getEntities(
         lights ? LightComponent : ModelComponent
@@ -212,21 +247,12 @@ export class Engine {
           PositionComponent
         );
         if (position) {
-          const translate = mat4Translation(mat4(), position.position);
-          const s = mat4Scale(
-            mat4(),
-            vec3(position.scale, position.scale, position.scale)
+          positionToMat4(
+            localTransform,
+            position.position,
+            position.orientation,
+            position.scale
           );
-
-          const q = quat();
-          quatMul(q, q, quatRotationAboutX(quat(), position.orientation[0]));
-          quatMul(q, q, quatRotationAboutY(quat(), position.orientation[1]));
-          quatMul(q, q, quatRotationAboutZ(quat(), position.orientation[2]));
-          const r = quatToMat4(mat4(), q);
-
-          mat4Mul(localTransform, localTransform, s);
-          mat4Mul(localTransform, localTransform, r);
-          mat4Mul(localTransform, localTransform, translate);
         }
 
         const world = mat4Mul(mat4(), localTransform, worldMatrix);

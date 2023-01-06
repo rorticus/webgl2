@@ -1,5 +1,12 @@
 import { vec3 } from "./vec3";
-import { mat4, mat4Identity, mat4Inv, mat4LookAt } from "./mat4";
+import {
+  Mat4,
+  mat4,
+  mat4Identity,
+  mat4Inv,
+  mat4LookAt,
+  mat4Perspective,
+} from "./mat4";
 
 export class Camera {
   position = vec3(0, 0, -5);
@@ -8,6 +15,12 @@ export class Camera {
 
   _cameraTransform = mat4();
   _inverseCameraTransform = mat4();
+
+  projection: Mat4;
+
+  constructor() {
+    this.projection = mat4Identity(mat4());
+  }
 
   dirty = true;
 
@@ -35,6 +48,17 @@ export class Camera {
     this._inverseCameraTransform = mat4Inv(
       this._inverseCameraTransform,
       this._cameraTransform
+    );
+  }
+
+  resize(width: number, height: number) {
+    mat4Perspective(
+      this.projection,
+      (Math.PI * 90) / 180,
+      width,
+      height,
+      0.1,
+      500
     );
   }
 }

@@ -8,13 +8,17 @@ import dirLightVert from "../shaders/dirlight.vert";
 import dirLightFrag from "../shaders/dirlight.frag";
 import { Uniforms } from "../gl/unforms";
 
-export interface PointLight {
+export interface AnyLight {
+  shadows?: boolean;
+}
+
+export interface PointLight extends AnyLight {
   type: "point";
   color: Vec3;
   intensity: number;
 }
 
-export interface DirectionalLight {
+export interface DirectionalLight extends AnyLight {
   type: "directional";
   color: Vec3;
   intensity: number;
