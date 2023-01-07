@@ -33,7 +33,15 @@ void main() {
         vec2 textureCoordinates = lightPosition.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);
 
         // Sample the depth value from the shadow map
-        float shadowDepth = texture(shadowTexture, textureCoordinates).r - 0.0001;
+        const float delta = 0.001;
+
+        float shadowDepthMid = texture(shadowTexture, textureCoordinates).r;
+        float shadowDepthTop = texture(shadowTexture, textureCoordinates - vec2(0, delta)).r;
+        float shadowDepthBottom = texture(shadowTexture, textureCoordinates + vec2(0, delta)).r;
+        float shadowDepthLeft = texture(shadowTexture, textureCoordinates - vec2(delta, 0)).r;
+        float shadowDepthRight = texture(shadowTexture, textureCoordinates + vec2(delta, 0)).r;
+
+        float shadowDepth = (shadowDepthMid + shadowDepthTop + shadowDepthBottom + shadowDepthLeft + shadowDepthRight) / 5.0;
 
         // Calculate the shadow factor
         shadowFactor = shadowDepth < lightPosition.z * 0.5 + 0.5 ? 0.5 : 1.0;

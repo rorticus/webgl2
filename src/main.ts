@@ -47,7 +47,7 @@ scene.entities.addEntity({
     type: "directional",
     color: vec3(1, 1, 1),
     intensity: 1,
-    direction: vec3Normalize(vec3(), vec3(1, 1, 1)),
+    direction: vec3Normalize(vec3(), vec3(-1, 1, 1)),
     shadows: true,
   },
   [PositionComponent]: {
