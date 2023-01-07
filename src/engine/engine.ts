@@ -329,16 +329,20 @@ export class Engine {
         }
 
         const world = mat4Mul(mat4(), l.objectToWorldMatrix, worldMatrix);
-        const invWorld = mat4Inv(mat4(), world);
+        const invWorld = mat4Inv(mat4(), worldMatrix);
 
         if (l.light.shadows) {
-          this.renderShadows(l.light, params);
+          extraUniforms = {
+            ...extraUniforms,
+            ...this.renderShadows(l.light, params),
+          };
         }
 
         const uniforms: Uniforms = {
           world: { type: "mat4", value: world },
           invWorld: { type: "mat4", value: invWorld },
           projection: { type: "mat4", value: projectionMatrix },
+          cameraPosition: { type: "vec3", value: this.root!.camera.position },
           elapsed: { type: "float", value: this.elapsed },
           ...extraUniforms,
         };
@@ -362,12 +366,8 @@ export class Engine {
     }
   }
 
-  renderShadows(light: Light, params: RenderParams) {
+  renderShadows(light: Light, params: RenderParams): Uniforms {
     const gl = this.gl;
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.shadowFrameBuffer);
-
-    gl.clear(gl.DEPTH_BUFFER_BIT);
 
     if (light.type === "directional") {
       const boundingSphere = params.boundingSphere;
@@ -414,6 +414,9 @@ export class Engine {
 
       mat4Inv(worldToViewMatrix, worldToViewMatrix);
 
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.shadowFrameBuffer);
+      gl.clear(gl.DEPTH_BUFFER_BIT);
+
       gl.enable(gl.DEPTH_TEST);
       gl.depthMask(true);
 
@@ -442,8 +445,26 @@ export class Engine {
 
       gl.disable(gl.DEPTH_TEST);
       gl.depthMask(false);
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.lightingFrameBuffer);
+
+      return {
+        shadowed: {
+          type: "bool",
+          value: true,
+        },
+        shadowTexture: {
+          type: "texture3",
+          value: this.gBuffer.shadowDepth.texture,
+        },
+        lightViewMatrix: { type: "mat4", value: worldToViewMatrix },
+        lightProjectionMatrix: {
+          type: "mat4",
+          value: projectionMatrix,
+        },
+      };
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.lightingFrameBuffer);
+    return {};
   }
 }

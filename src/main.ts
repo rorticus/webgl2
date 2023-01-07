@@ -1,6 +1,6 @@
 import Material from "./gl/material";
 import Model from "./gl/model";
-import { vec3 } from "./gl/vec3";
+import { vec3, vec3Normalize } from "./gl/vec3";
 import { loadMaterials, loadObj } from "./gl/obj";
 import objModel from "./models/scene.obj";
 import { mtl as objMats } from "./models/scene.mtl";
@@ -47,7 +47,7 @@ scene.entities.addEntity({
     type: "directional",
     color: vec3(1, 1, 1),
     intensity: 1,
-    direction: vec3(1, 1, 1),
+    direction: vec3Normalize(vec3(), vec3(1, 1, 1)),
     shadows: true,
   },
   [PositionComponent]: {
@@ -57,18 +57,18 @@ scene.entities.addEntity({
   },
 });
 
-scene.entities.addEntity({
-  [LightComponent]: {
-    type: "point",
-    color: vec3(1, 1, 1),
-    intensity: 1,
-  },
-  [PositionComponent]: {
-    position: vec3(2, 2, -4),
-    orientation: vec3(),
-    scale: 7,
-  },
-});
+// scene.entities.addEntity({
+//   [LightComponent]: {
+//     type: "point",
+//     color: vec3(1, 1, 1),
+//     intensity: 1,
+//   },
+//   [PositionComponent]: {
+//     position: vec3(2, 2, -4),
+//     orientation: vec3(),
+//     scale: 7,
+//   },
+// });
 
 let mouseX = 0,
   mouseY = 0;

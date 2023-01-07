@@ -1,6 +1,11 @@
 import { Vec4 } from "./vec4";
 import { Vec3 } from "./vec3";
 
+export interface BoolUniform {
+  type: "bool";
+  value: boolean;
+}
+
 export interface IntUniform {
   type: "int";
   value: number;
@@ -27,7 +32,7 @@ export interface Mat4Uniform {
 }
 
 export interface TextureUniform {
-  type: "texture0" | "texture1" | "texture2";
+  type: "texture0" | "texture1" | "texture2" | "texture3";
   value: WebGLTexture;
 }
 
@@ -37,7 +42,8 @@ export type Uniform =
   | Vec4Uniform
   | Vec3Uniform
   | Mat4Uniform
-  | TextureUniform;
+  | TextureUniform
+  | BoolUniform;
 export type Uniforms = Record<string, Uniform>;
 
 export function setUniform(
@@ -46,6 +52,9 @@ export function setUniform(
   value: Uniform
 ) {
   switch (value.type) {
+    case "bool":
+      gl.uniform1i(uniform, value.value ? 1 : 0);
+      break;
     case "int":
       gl.uniform1i(uniform, value.value);
       break;
@@ -75,6 +84,11 @@ export function setUniform(
       gl.activeTexture(gl.TEXTURE2);
       gl.bindTexture(gl.TEXTURE_2D, value.value);
       gl.uniform1i(uniform, 2);
+      break;
+    case "texture3":
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D, value.value);
+      gl.uniform1i(uniform, 3);
       break;
   }
 }
