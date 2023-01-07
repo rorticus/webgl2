@@ -4,7 +4,9 @@ import {
   Mat4,
   mat4Identity,
   mat4Inv,
+  mat4LookAt,
   mat4Mul,
+  mat4Perspective,
   mat4Scale,
   mat4Translation,
 } from "../gl/mat4";
@@ -13,14 +15,14 @@ import {
   ModelComponent,
   PositionComponent,
 } from "./components";
-import { Vec3, vec3 } from "../gl/vec3";
+import { Vec3, vec3, vec3Add, vec3DistanceTo, vec3Scale } from "../gl/vec3";
 import { GBuffer } from "../gl/buffers";
 import Model from "../gl/model";
 import Geometry from "../gl/geometry";
 import Material from "../gl/material";
 import accumVert from "../shaders/accum.vert";
 import accumFrag from "../shaders/accum.frag";
-import { getLightModel } from "./lighting";
+import { getLightModel, Light } from "./lighting";
 import { Uniforms } from "../gl/unforms";
 import {
   quat,
@@ -30,6 +32,11 @@ import {
   quatRotationAboutZ,
   quatToMat4,
 } from "../gl/quat";
+import { BoundingSphere } from "../gl/boundingSphere";
+import shadowVertexShader from "../shaders/shadow.vert";
+import shadowFragmentShader from "../shaders/shadow.frag";
+
+const shadowMaterial = new Material(shadowVertexShader, shadowFragmentShader);
 
 function positionToMat4(
   dest: Mat4,
@@ -53,6 +60,26 @@ function positionToMat4(
   mat4Mul(dest, dest, translate);
 
   return dest;
+}
+
+interface RenderParams {
+  models: {
+    model: Model;
+    position: Vec3;
+    orientation: Vec3;
+    scale: number;
+    objectToWorldMatrix: Mat4;
+  }[];
+
+  lights: {
+    light: Light;
+    position: Vec3;
+    orientation: Vec3;
+    scale: number;
+    objectToWorldMatrix: Mat4;
+  }[];
+
+  boundingSphere: BoundingSphere;
 }
 
 export class Engine {
@@ -125,6 +152,69 @@ export class Engine {
 
       const gl = this.gl;
 
+      const modelsInFrustum = this.root?.entities.getEntities(ModelComponent)!;
+      const lights = this.root?.entities.getEntities(LightComponent)!;
+
+      const renderParamModels = modelsInFrustum.map((entity) => {
+        const m = this.root?.entities.getComponent(entity, ModelComponent)!;
+        const p = this.root?.entities.getComponent(entity, PositionComponent)!;
+
+        const position = p?.position ?? vec3(0, 0, 0);
+        const orientation = p?.orientation ?? vec3(0, 0, 0);
+        const scale = p?.scale ?? 1;
+        const worldMatrix = positionToMat4(
+          mat4(),
+          position,
+          orientation,
+          scale
+        );
+        return {
+          model: m,
+          position,
+          orientation,
+          scale,
+          objectToWorldMatrix: worldMatrix,
+        };
+      });
+
+      const renderParamsLights = lights.map((entity) => {
+        const l = this.root?.entities.getComponent(entity, LightComponent)!;
+        const p = this.root?.entities.getComponent(entity, PositionComponent)!;
+
+        const position = p?.position ?? vec3(0, 0, 0);
+        const orientation = p?.orientation ?? vec3(0, 0, 0);
+        const scale = p?.scale ?? 1;
+        const worldMatrix = positionToMat4(
+          mat4(),
+          position,
+          orientation,
+          scale
+        );
+
+        return {
+          light: l,
+          position,
+          orientation,
+          scale,
+          objectToWorldMatrix: worldMatrix,
+        };
+      });
+
+      const renderParams: RenderParams = {
+        models: renderParamModels,
+        lights: renderParamsLights,
+        boundingSphere: BoundingSphere.merge(
+          renderParamModels
+            .filter((m) => !!m.model?.geometry?.boundingSphere)
+            .map((m) =>
+              m.model.geometry.boundingSphere.movedAndScaled(
+                m.position,
+                m.scale
+              )
+            )
+        ),
+      };
+
       // g buffer pass
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.renderFrameBuffer);
 
@@ -138,7 +228,7 @@ export class Engine {
       gl.cullFace(gl.BACK);
 
       // off screen rendering
-      this.render();
+      this.renderModels(renderParams);
 
       // // lighting pass
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.lightingFrameBuffer);
@@ -146,16 +236,12 @@ export class Engine {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE);
 
-      // gl.enable(gl.STENCIL_TEST);
-      // gl.stencilOpSeparate(gl.BACK, gl.KEEP, gl.INCR_WRAP, gl.KEEP);
-      // gl.stencilOpSeparate(gl.FRONT, gl.KEEP, gl.DECR_WRAP, gl.KEEP);
-
       gl.disable(gl.DEPTH_TEST);
       gl.depthMask(false);
 
       gl.cullFace(gl.FRONT);
 
-      this.render(true);
+      this.renderLights(renderParams);
 
       gl.disable(gl.BLEND);
       gl.cullFace(gl.BACK);
@@ -194,7 +280,7 @@ export class Engine {
     );
   }
 
-  render(lights = false) {
+  renderModels(params: RenderParams) {
     const gl = this.gl;
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -204,45 +290,50 @@ export class Engine {
       const worldMatrix = this.root.camera.inverseTransform;
       const projectionMatrix = this.root.camera.projection;
 
-      const models = this.root.entities.getEntities(
-        lights ? LightComponent : ModelComponent
-      );
-      const localTransform = mat4();
+      params.models.forEach((model) => {
+        const world = mat4Mul(mat4(), model.objectToWorldMatrix, worldMatrix);
+        const invWorld = mat4Inv(mat4(), world);
 
-      models.forEach((modelEntity) => {
+        const uniforms: Uniforms = {
+          world: { type: "mat4", value: world },
+          invWorld: { type: "mat4", value: invWorld },
+          projection: { type: "mat4", value: projectionMatrix },
+          elapsed: { type: "float", value: this.elapsed },
+        };
+
+        model?.model.prepare(gl, uniforms);
+        model?.model.draw(gl);
+      });
+    }
+  }
+
+  renderLights(params: RenderParams) {
+    const gl = this.gl;
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    if (this.root) {
+      // render each entity in the scene
+      const worldMatrix = this.root.camera.inverseTransform;
+      const projectionMatrix = this.root.camera.projection;
+
+      params.lights.forEach((l) => {
         let model: Model | null = null;
         let extraUniforms: Uniforms = {};
 
-        if (lights) {
-          let result = getLightModel(
-            this.root?.entities.getComponent(modelEntity, LightComponent)
-          );
+        let result = getLightModel(l.light);
 
-          if (result) {
-            model = result.model;
-            extraUniforms = result.uniforms;
-          }
-        } else {
-          model = this.root?.entities.getComponent(modelEntity, ModelComponent);
+        if (result) {
+          model = result.model;
+          extraUniforms = result.uniforms;
         }
 
-        mat4Identity(localTransform);
-
-        const position = this.root?.entities.getComponent(
-          modelEntity,
-          PositionComponent
-        );
-        if (position) {
-          positionToMat4(
-            localTransform,
-            position.position,
-            position.orientation,
-            position.scale
-          );
-        }
-
-        const world = mat4Mul(mat4(), localTransform, worldMatrix);
+        const world = mat4Mul(mat4(), l.objectToWorldMatrix, worldMatrix);
         const invWorld = mat4Inv(mat4(), world);
+
+        if (l.light.shadows) {
+          this.renderShadows(l.light, params);
+        }
 
         const uniforms: Uniforms = {
           world: { type: "mat4", value: world },
@@ -252,24 +343,107 @@ export class Engine {
           ...extraUniforms,
         };
 
-        if (lights) {
-          uniforms.positionTexture = {
-            type: "texture0",
-            value: this.gBuffer.position.texture,
-          };
-          uniforms.normalTexture = {
-            type: "texture1",
-            value: this.gBuffer.normal.texture,
-          };
-          uniforms.diffuseTexture = {
-            type: "texture2",
-            value: this.gBuffer.color.texture,
-          };
-        }
+        uniforms.positionTexture = {
+          type: "texture0",
+          value: this.gBuffer.position.texture,
+        };
+        uniforms.normalTexture = {
+          type: "texture1",
+          value: this.gBuffer.normal.texture,
+        };
+        uniforms.diffuseTexture = {
+          type: "texture2",
+          value: this.gBuffer.color.texture,
+        };
 
         model?.prepare(gl, uniforms);
         model?.draw(gl);
       });
     }
+  }
+
+  renderShadows(light: Light, params: RenderParams) {
+    const gl = this.gl;
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.shadowFrameBuffer);
+
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+
+    if (light.type === "directional") {
+      const boundingSphere = params.boundingSphere;
+      const cameraPosition = vec3Add(
+        vec3(),
+        boundingSphere.center,
+        vec3Scale(vec3(), light.direction, boundingSphere.radius * 2)
+      );
+
+      // Calculate the near plane distance
+      let nearPlaneDistance =
+        vec3DistanceTo(cameraPosition, boundingSphere.center) -
+        boundingSphere.radius;
+
+      // Calculate the far plane distance
+      let farPlaneDistance =
+        vec3DistanceTo(cameraPosition, boundingSphere.center) +
+        boundingSphere.radius;
+
+      // Calculate the field of view
+      let fieldOfView =
+        2 *
+        Math.atan(
+          boundingSphere.radius / (nearPlaneDistance + farPlaneDistance)
+        );
+
+      // Create the projection matrix
+      let projectionMatrix = mat4Perspective(
+        mat4(),
+        fieldOfView,
+        this.gl.drawingBufferWidth,
+        this.gl.drawingBufferHeight,
+        nearPlaneDistance,
+        farPlaneDistance
+      );
+
+      // Create the view matrix
+      const worldToViewMatrix = mat4LookAt(
+        mat4(),
+        boundingSphere.center,
+        cameraPosition,
+        vec3(0, 1, 0)
+      );
+
+      mat4Inv(worldToViewMatrix, worldToViewMatrix);
+
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthMask(true);
+
+      // draw each model from this perspective
+      params.models.forEach((model) => {
+        const world = mat4Mul(
+          mat4(),
+          model.objectToWorldMatrix,
+          worldToViewMatrix
+        );
+
+        const uniforms: Uniforms = {
+          world: { type: "mat4", value: world },
+          projection: { type: "mat4", value: projectionMatrix },
+          elapsed: { type: "float", value: this.elapsed },
+        };
+
+        // prepare the material
+        shadowMaterial.prepare(
+          gl,
+          model?.model.geometry.getAttributeSource(),
+          uniforms
+        );
+        model?.model.geometry.draw(gl, uniforms);
+      });
+
+      gl.disable(gl.DEPTH_TEST);
+      gl.depthMask(false);
+    }
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.lightingFrameBuffer);
   }
 }

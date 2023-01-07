@@ -137,7 +137,7 @@ export class GBuffer {
     this.color = new RenderTarget(gl.RGBA32F, gl);
     this.depth = new RenderTarget(gl.DEPTH24_STENCIL8, gl);
     this.accum = new RenderTarget(gl.RGBA32F, gl);
-    this.shadowDepth = new RenderTarget(gl.DEPTH_COMPONENT32F, gl);
+    this.shadowDepth = new RenderTarget(gl.DEPTH24_STENCIL8, gl);
 
     this.renderFrameBuffer = gl.createFramebuffer()!;
     this.lightingFrameBuffer = gl.createFramebuffer()!;

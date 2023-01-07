@@ -122,13 +122,15 @@ const frame = () => {
 // frame();
 
 // setTimeout(() => {
-//   const color = drawWebglTexture(engine.gl, engine.gBuffer.color.texture);
-//   const position = drawWebglTexture(engine.gl, engine.gBuffer.position.texture);
-//   const normal = drawWebglTexture(engine.gl, engine.gBuffer.normal.texture);
-//
-//   document.body.appendChild(color);
-//   document.body.appendChild(position);
-//   document.body.appendChild(normal);
+// const color = drawWebglTexture(engine.gl, engine.gBuffer.color.texture);
+// const position = drawWebglTexture(engine.gl, engine.gBuffer.position.texture);
+// const normal = drawWebglTexture(engine.gl, engine.gBuffer.normal.texture);
+// const depth = drawWebglTexture(engine.gl, engine.gBuffer.shadowDepth.texture);
+
+// document.body.appendChild(color);
+// document.body.appendChild(position);
+// document.body.appendChild(normal);
+// document.body.appendChild(depth);
 // }, 100);
 
 export {};
