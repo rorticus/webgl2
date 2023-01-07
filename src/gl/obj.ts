@@ -1,6 +1,7 @@
 import { vec3, Vec3 } from "./vec3";
 import Geometry from "./geometry";
 import { NormalBuffer, PositionBuffer } from "./buffers";
+import { BoundingSphere } from "./boundingSphere";
 
 interface MaterialDefiniton {
   name: string;
@@ -82,7 +83,8 @@ export function loadObj(
           value: vec3(...(materials[name]?.ambient || [0, 0, 0])),
         },
       },
-    }))
+    })),
+    BoundingSphere.calculateForVertices(allVertices)
   );
 }
 

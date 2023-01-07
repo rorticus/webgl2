@@ -1,5 +1,6 @@
 import { AttributeSource, IBO, VBO, VBOData } from "./buffers";
 import { setUniform, Uniform } from "./unforms";
+import { BoundingSphere } from "./boundingSphere";
 
 interface MaterialGroup {
   indices: Uint16Array;
@@ -14,12 +15,16 @@ class Geometry {
 
   groups: MaterialGroup[] = [];
 
+  boundingSphere?: BoundingSphere;
+
   constructor(
     vertexBufferData: Record<string, VBOData>,
-    groups: MaterialGroup[]
+    groups: MaterialGroup[],
+    boundingSphere: BoundingSphere | undefined = undefined
   ) {
     this.vertexBufferData = vertexBufferData;
     this.groups = groups;
+    this.boundingSphere = boundingSphere;
   }
 
   getBuffer(buffer: string) {

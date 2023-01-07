@@ -164,20 +164,6 @@ export class Engine {
       // gl.disable(gl.STENCIL_TEST);
       gl.enable(gl.DEPTH_TEST);
 
-      // shadow maps
-      this.root?.entities.getEntities(LightComponent).forEach((entity) => {
-        const light = this.root?.entities.getComponent(entity, LightComponent);
-        if (light.shadows) {
-          const position = this.root?.entities.getComponent(
-            entity,
-            PositionComponent
-          );
-          if (position) {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.shadowFrameBuffer);
-          }
-        }
-      });
-
       // final pass
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
