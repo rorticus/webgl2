@@ -46,7 +46,7 @@ scene.entities.addEntity({
   [LightComponent]: {
     type: "directional",
     color: vec3(1, 1, 1),
-    intensity: 1,
+    intensity: 2,
     direction: vec3Normalize(vec3(), vec3(-1, 1, 1)),
     shadows: true,
   },

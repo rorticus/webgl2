@@ -92,8 +92,18 @@ export class IBO {
 
 export class RenderTarget {
   texture!: WebGLTexture;
+  width: number | null;
+  height: number | null;
 
-  constructor(public type: number, gl: WebGL2RenderingContext) {
+  constructor(
+    public type: number,
+    gl: WebGL2RenderingContext,
+    width: number | null = null,
+    height: number | null = null
+  ) {
+    this.width = width;
+    this.height = height;
+
     this.resize(gl);
   }
 
@@ -111,8 +121,8 @@ export class RenderTarget {
       gl.TEXTURE_2D,
       1,
       this.type,
-      gl.drawingBufferWidth,
-      gl.drawingBufferHeight
+      this.width || gl.drawingBufferWidth,
+      this.height || gl.drawingBufferHeight
     );
 
     gl.bindTexture(gl.TEXTURE_2D, null);

@@ -4,9 +4,7 @@ import {
   Mat4,
   mat4Identity,
   mat4Inv,
-  mat4LookAt,
   mat4Mul,
-  mat4Perspective,
   mat4Scale,
   mat4Translation,
 } from "../gl/mat4";
@@ -15,14 +13,13 @@ import {
   ModelComponent,
   PositionComponent,
 } from "./components";
-import { Vec3, vec3, vec3Add, vec3DistanceTo, vec3Scale } from "../gl/vec3";
+import { Vec3, vec3 } from "../gl/vec3";
 import { GBuffer } from "../gl/buffers";
 import Model from "../gl/model";
 import Geometry from "../gl/geometry";
 import Material from "../gl/material";
 import accumVert from "../shaders/accum.vert";
 import accumFrag from "../shaders/accum.frag";
-import { getLightModel, Light } from "./lighting";
 import { Uniforms } from "../gl/unforms";
 import {
   quat,
@@ -33,10 +30,10 @@ import {
   quatToMat4,
 } from "../gl/quat";
 import { BoundingSphere } from "../gl/boundingSphere";
-import shadowVertexShader from "../shaders/shadow.vert";
-import shadowFragmentShader from "../shaders/shadow.frag";
-
-const shadowMaterial = new Material(shadowVertexShader, shadowFragmentShader);
+import { RenderParams } from "./types";
+import { LightRenderer } from "./lighting/lights";
+import { PointLightRenderer } from "./lighting/pointLight";
+import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
 
 function positionToMat4(
   dest: Mat4,
@@ -62,32 +59,13 @@ function positionToMat4(
   return dest;
 }
 
-interface RenderParams {
-  models: {
-    model: Model;
-    position: Vec3;
-    orientation: Vec3;
-    scale: number;
-    objectToWorldMatrix: Mat4;
-  }[];
-
-  lights: {
-    light: Light;
-    position: Vec3;
-    orientation: Vec3;
-    scale: number;
-    objectToWorldMatrix: Mat4;
-  }[];
-
-  boundingSphere: BoundingSphere;
-}
-
 export class Engine {
   root?: Scene<any, any>;
   canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
   lastTime: number = 0;
   elapsed = 0;
+  lightRenderers: Record<string, LightRenderer> = {};
 
   gBuffer: GBuffer;
   private finalQuad: Model;
@@ -99,6 +77,11 @@ export class Engine {
     this.gl = gl;
 
     this.gBuffer = new GBuffer(gl);
+
+    this.lightRenderers = {
+      point: new PointLightRenderer(),
+      directional: new DirectionalLightPCF(gl),
+    };
 
     if (!gl.getExtension("EXT_color_buffer_float")) {
       throw new Error(
@@ -213,6 +196,9 @@ export class Engine {
               )
             )
         ),
+        camera: this.root?.camera!,
+        worldToViewMatrix: this.root?.camera.inverseTransform!,
+        viewToWorldMatrix: this.root?.camera.cameraTransform!,
       };
 
       // g buffer pass
@@ -314,157 +300,16 @@ export class Engine {
 
     if (this.root) {
       // render each entity in the scene
-      const worldMatrix = this.root.camera.inverseTransform;
-      const projectionMatrix = this.root.camera.projection;
-
       params.lights.forEach((l) => {
-        let model: Model | null = null;
-        let extraUniforms: Uniforms = {};
-
-        let result = getLightModel(l.light);
-
-        if (result) {
-          model = result.model;
-          extraUniforms = result.uniforms;
+        if (l.light.type in this.lightRenderers) {
+          this.lightRenderers[l.light.type].renderLight(
+            gl,
+            this.gBuffer,
+            l,
+            params
+          );
         }
-
-        const world = mat4Mul(mat4(), l.objectToWorldMatrix, worldMatrix);
-        const invWorld = mat4Inv(mat4(), worldMatrix);
-
-        if (l.light.shadows) {
-          extraUniforms = {
-            ...extraUniforms,
-            ...this.renderShadows(l.light, params),
-          };
-        }
-
-        const uniforms: Uniforms = {
-          world: { type: "mat4", value: world },
-          invWorld: { type: "mat4", value: invWorld },
-          projection: { type: "mat4", value: projectionMatrix },
-          cameraPosition: { type: "vec3", value: this.root!.camera.position },
-          elapsed: { type: "float", value: this.elapsed },
-          ...extraUniforms,
-        };
-
-        uniforms.positionTexture = {
-          type: "texture0",
-          value: this.gBuffer.position.texture,
-        };
-        uniforms.normalTexture = {
-          type: "texture1",
-          value: this.gBuffer.normal.texture,
-        };
-        uniforms.diffuseTexture = {
-          type: "texture2",
-          value: this.gBuffer.color.texture,
-        };
-
-        model?.prepare(gl, uniforms);
-        model?.draw(gl);
       });
     }
-  }
-
-  renderShadows(light: Light, params: RenderParams): Uniforms {
-    const gl = this.gl;
-
-    if (light.type === "directional") {
-      const boundingSphere = params.boundingSphere;
-      const cameraPosition = vec3Add(
-        vec3(),
-        boundingSphere.center,
-        vec3Scale(vec3(), light.direction, boundingSphere.radius * 2)
-      );
-
-      // Calculate the near plane distance
-      let nearPlaneDistance =
-        vec3DistanceTo(cameraPosition, boundingSphere.center) -
-        boundingSphere.radius;
-
-      // Calculate the far plane distance
-      let farPlaneDistance =
-        vec3DistanceTo(cameraPosition, boundingSphere.center) +
-        boundingSphere.radius;
-
-      // Calculate the field of view
-      let fieldOfView =
-        2 *
-        Math.atan(
-          boundingSphere.radius / (nearPlaneDistance + farPlaneDistance)
-        );
-
-      // Create the projection matrix
-      let projectionMatrix = mat4Perspective(
-        mat4(),
-        fieldOfView,
-        this.gl.drawingBufferWidth,
-        this.gl.drawingBufferHeight,
-        nearPlaneDistance,
-        farPlaneDistance
-      );
-
-      // Create the view matrix
-      const worldToViewMatrix = mat4LookAt(
-        mat4(),
-        boundingSphere.center,
-        cameraPosition,
-        vec3(0, 1, 0)
-      );
-
-      mat4Inv(worldToViewMatrix, worldToViewMatrix);
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.shadowFrameBuffer);
-      gl.clear(gl.DEPTH_BUFFER_BIT);
-
-      gl.enable(gl.DEPTH_TEST);
-      gl.depthMask(true);
-
-      // draw each model from this perspective
-      params.models.forEach((model) => {
-        const world = mat4Mul(
-          mat4(),
-          model.objectToWorldMatrix,
-          worldToViewMatrix
-        );
-
-        const uniforms: Uniforms = {
-          world: { type: "mat4", value: world },
-          projection: { type: "mat4", value: projectionMatrix },
-          elapsed: { type: "float", value: this.elapsed },
-        };
-
-        // prepare the material
-        shadowMaterial.prepare(
-          gl,
-          model?.model.geometry.getAttributeSource(),
-          uniforms
-        );
-        model?.model.geometry.draw(gl, uniforms);
-      });
-
-      gl.disable(gl.DEPTH_TEST);
-      gl.depthMask(false);
-
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.lightingFrameBuffer);
-
-      return {
-        shadowed: {
-          type: "bool",
-          value: true,
-        },
-        shadowTexture: {
-          type: "texture3",
-          value: this.gBuffer.shadowDepth.texture,
-        },
-        lightViewMatrix: { type: "mat4", value: worldToViewMatrix },
-        lightProjectionMatrix: {
-          type: "mat4",
-          value: projectionMatrix,
-        },
-      };
-    }
-
-    return {};
   }
 }
