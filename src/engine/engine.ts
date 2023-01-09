@@ -242,6 +242,8 @@ export class Engine {
       this.finalQuad.prepare(gl, {
         positionTexture: {
           type: "texture0",
+          // value: (this.lightRenderers["directional"] as any).shadowDepthBuffer
+          //   .texture,
           value: this.gBuffer.accum.texture,
         },
       });

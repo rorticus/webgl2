@@ -94,15 +94,18 @@ export class RenderTarget {
   texture!: WebGLTexture;
   width: number | null;
   height: number | null;
+  filter: number;
 
   constructor(
     public type: number,
     gl: WebGL2RenderingContext,
     width: number | null = null,
-    height: number | null = null
+    height: number | null = null,
+    filter: number = gl.NEAREST
   ) {
     this.width = width;
     this.height = height;
+    this.filter = filter;
 
     this.resize(gl);
   }
@@ -112,8 +115,8 @@ export class RenderTarget {
 
     this.texture = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, this.filter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, this.filter);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 

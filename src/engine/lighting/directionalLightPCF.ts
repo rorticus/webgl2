@@ -31,8 +31,8 @@ export class DirectionalLightPCF implements LightRenderer {
   shadowFrameBuffer: WebGLFramebuffer;
 
   constructor(gl: WebGL2RenderingContext) {
-    this.shadowBufferWidth = 1024;
-    this.shadowBufferHeight = 1024;
+    this.shadowBufferWidth = 2048;
+    this.shadowBufferHeight = 2048;
 
     this.shadowDepthBuffer = new RenderTarget(
       gl.DEPTH_COMPONENT32F,
@@ -175,6 +175,7 @@ export class DirectionalLightPCF implements LightRenderer {
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthMask(true);
+    gl.cullFace(gl.BACK);
 
     // draw each model from this perspective
     params.models.forEach((model) => {
@@ -197,6 +198,8 @@ export class DirectionalLightPCF implements LightRenderer {
       );
       model?.model.geometry.draw(gl, uniforms);
     });
+
+    gl.cullFace(gl.FRONT);
 
     gl.disable(gl.DEPTH_TEST);
     gl.depthMask(false);
