@@ -25,19 +25,19 @@ const directionalLightMaterial = new Material(dirLightVert, dirLightFrag);
 const icoSphere = createIcoSphere();
 
 export class DirectionalLightPCF implements LightRenderer {
-  shadowBuferWidth: number;
+  shadowBufferWidth: number;
   shadowBufferHeight: number;
   shadowDepthBuffer: RenderTarget;
   shadowFrameBuffer: WebGLFramebuffer;
 
   constructor(gl: WebGL2RenderingContext) {
-    this.shadowBuferWidth = 800;
-    this.shadowBufferHeight = 600;
+    this.shadowBufferWidth = 1024;
+    this.shadowBufferHeight = 1024;
 
     this.shadowDepthBuffer = new RenderTarget(
       gl.DEPTH_COMPONENT32F,
       gl,
-      this.shadowBuferWidth,
+      this.shadowBufferWidth,
       this.shadowBufferHeight
     );
     this.shadowFrameBuffer = gl.createFramebuffer()!;
@@ -141,6 +141,7 @@ export class DirectionalLightPCF implements LightRenderer {
 
     // Calculate the field of view
     let fieldOfView =
+      Math.PI *
       2 *
       Math.atan(boundingSphere.radius / (nearPlaneDistance + farPlaneDistance));
 
@@ -148,7 +149,7 @@ export class DirectionalLightPCF implements LightRenderer {
     let projectionMatrix = mat4Perspective(
       mat4(),
       fieldOfView,
-      this.shadowBuferWidth,
+      this.shadowBufferWidth,
       this.shadowBufferHeight,
       nearPlaneDistance,
       farPlaneDistance
@@ -166,6 +167,11 @@ export class DirectionalLightPCF implements LightRenderer {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFrameBuffer);
     gl.clear(gl.DEPTH_BUFFER_BIT);
+
+    const oldViewport: [number, number, number, number] = gl.getParameter(
+      gl.VIEWPORT
+    );
+    gl.viewport(0, 0, this.shadowBufferWidth, this.shadowBufferHeight);
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthMask(true);
@@ -194,6 +200,8 @@ export class DirectionalLightPCF implements LightRenderer {
 
     gl.disable(gl.DEPTH_TEST);
     gl.depthMask(false);
+
+    gl.viewport(...oldViewport);
 
     return {
       shadowed: {
