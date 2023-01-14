@@ -1,5 +1,4 @@
 import { LightRenderer } from "./lights";
-import { GBuffer, RenderTarget } from "../../gl/buffers";
 import { RenderParams, RenderParamsLight } from "../types";
 import Model from "../../gl/model";
 import { Uniforms } from "../../gl/unforms";
@@ -18,6 +17,7 @@ import shadowFragmentShader from "./shaders/shadowdepth.frag";
 import dirLightVert from "./shaders/dirlight-pcf.vert";
 import dirLightFrag from "./shaders/dirlight-pcf.frag";
 import { createIcoSphere } from "../../gl/sphere";
+import { FrameBuffer } from "../../gl/framebuffer";
 
 const shadowMaterial = new Material(shadowVertexShader, shadowFragmentShader);
 const directionalLightMaterial = new Material(dirLightVert, dirLightFrag);
@@ -27,38 +27,28 @@ const icoSphere = createIcoSphere();
 export class DirectionalLightPCF implements LightRenderer {
   shadowBufferWidth: number;
   shadowBufferHeight: number;
-  shadowDepthBuffer: RenderTarget;
-  shadowFrameBuffer: WebGLFramebuffer;
+  shadowFrameBuffer: FrameBuffer;
 
   constructor(gl: WebGL2RenderingContext) {
     this.shadowBufferWidth = 2048;
     this.shadowBufferHeight = 2048;
 
-    this.shadowDepthBuffer = new RenderTarget(
-      gl.DEPTH_COMPONENT32F,
+    this.shadowFrameBuffer = new FrameBuffer(
       gl,
       this.shadowBufferWidth,
-      this.shadowBufferHeight
+      this.shadowBufferHeight,
+      {
+        depth: true,
+      }
     );
-    this.shadowFrameBuffer = gl.createFramebuffer()!;
-
-    // set up the shadow framebuffer
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFrameBuffer);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.DEPTH_ATTACHMENT,
-      gl.TEXTURE_2D,
-      this.shadowDepthBuffer.texture,
-      0
-    );
-    gl.drawBuffers([gl.NONE]);
-    gl.readBuffer(gl.NONE);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   renderLight(
     gl: WebGL2RenderingContext,
-    gBuffer: GBuffer,
+    gBuffer: {
+      renderFrameBuffer: FrameBuffer;
+      lightingFrameBuffer: FrameBuffer;
+    },
     light: RenderParamsLight,
     renderParams: RenderParams
   ): void {
@@ -101,18 +91,18 @@ export class DirectionalLightPCF implements LightRenderer {
 
     uniforms.positionTexture = {
       type: "texture0",
-      value: gBuffer.position.texture,
+      value: gBuffer.renderFrameBuffer.getRenderTarget("position").texture,
     };
     uniforms.normalTexture = {
       type: "texture1",
-      value: gBuffer.normal.texture,
+      value: gBuffer.renderFrameBuffer.getRenderTarget("normal").texture,
     };
     uniforms.diffuseTexture = {
       type: "texture2",
-      value: gBuffer.color.texture,
+      value: gBuffer.renderFrameBuffer.getRenderTarget("color").texture,
     };
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, gBuffer.lightingFrameBuffer);
+    gBuffer.lightingFrameBuffer.bind(gl);
     model?.prepare(gl, uniforms);
     model?.draw(gl);
   }
@@ -165,7 +155,8 @@ export class DirectionalLightPCF implements LightRenderer {
 
     mat4Inv(worldToViewMatrix, worldToViewMatrix);
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFrameBuffer);
+    this.shadowFrameBuffer.bind(gl);
+
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
     const oldViewport: [number, number, number, number] = gl.getParameter(
@@ -213,7 +204,7 @@ export class DirectionalLightPCF implements LightRenderer {
       },
       shadowTexture: {
         type: "texture3",
-        value: this.shadowDepthBuffer.texture,
+        value: this.shadowFrameBuffer.getDepthBuffer()!,
       },
       lightViewMatrix: { type: "mat4", value: worldToViewMatrix },
       lightProjectionMatrix: {

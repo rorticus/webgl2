@@ -14,7 +14,6 @@ import {
   PositionComponent,
 } from "./components";
 import { Vec3, vec3 } from "../gl/vec3";
-import { GBuffer } from "../gl/buffers";
 import Model from "../gl/model";
 import Geometry from "../gl/geometry";
 import Material from "../gl/material";
@@ -34,6 +33,7 @@ import { RenderParams } from "./types";
 import { LightRenderer } from "./lighting/lights";
 import { PointLightRenderer } from "./lighting/pointLight";
 import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
+import { FrameBuffer } from "../gl/framebuffer";
 
 function positionToMat4(
   dest: Mat4,
@@ -67,7 +67,10 @@ export class Engine {
   elapsed = 0;
   lightRenderers: Record<string, LightRenderer> = {};
 
-  gBuffer: GBuffer;
+  // gbuffer
+  renderFrameBuffer: FrameBuffer;
+  lightingFrameBuffer: FrameBuffer;
+
   private finalQuad: Model;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -76,7 +79,32 @@ export class Engine {
 
     this.gl = gl;
 
-    this.gBuffer = new GBuffer(gl);
+    this.renderFrameBuffer = new FrameBuffer(
+      gl,
+      gl.drawingBufferWidth,
+      gl.drawingBufferHeight,
+      {
+        color: {
+          position: { format: gl.RGBA32F },
+          normal: { format: gl.RGBA32F },
+          color: { format: gl.RGBA32F },
+          accum: { format: gl.RGBA32F },
+        },
+        depth: true,
+      }
+    );
+
+    this.lightingFrameBuffer = new FrameBuffer(
+      gl,
+      gl.drawingBufferWidth,
+      gl.drawingBufferHeight,
+      {
+        color: {
+          accum: { target: this.renderFrameBuffer, name: "accum" },
+        },
+        depth: true,
+      }
+    );
 
     this.lightRenderers = {
       point: new PointLightRenderer(),
@@ -202,7 +230,7 @@ export class Engine {
       };
 
       // g buffer pass
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.renderFrameBuffer);
+      this.renderFrameBuffer.bind(gl);
 
       gl.clear(
         gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT
@@ -217,7 +245,7 @@ export class Engine {
       this.renderModels(renderParams);
 
       // // lighting pass
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.gBuffer.lightingFrameBuffer);
+      this.lightingFrameBuffer.bind(gl);
 
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE);
@@ -244,7 +272,7 @@ export class Engine {
           type: "texture0",
           // value: (this.lightRenderers["directional"] as any).shadowDepthBuffer
           //   .texture,
-          value: this.gBuffer.accum.texture,
+          value: this.renderFrameBuffer.getRenderTarget("accum").texture,
         },
       });
       this.finalQuad.draw(gl);
@@ -257,7 +285,8 @@ export class Engine {
 
   resize(width: number, height: number) {
     this.root?.camera?.resize(width, height);
-    this.gBuffer.resize(this.gl);
+    this.renderFrameBuffer.resize(this.gl);
+    this.lightingFrameBuffer.resize(this.gl);
   }
 
   setRootScene(scene: Scene<any, any>) {
@@ -306,7 +335,10 @@ export class Engine {
         if (l.light.type in this.lightRenderers) {
           this.lightRenderers[l.light.type].renderLight(
             gl,
-            this.gBuffer,
+            {
+              renderFrameBuffer: this.renderFrameBuffer,
+              lightingFrameBuffer: this.lightingFrameBuffer,
+            },
             l,
             params
           );

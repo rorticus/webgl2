@@ -1,5 +1,4 @@
-import { LightRenderer } from "./lights";
-import { GBuffer } from "../../gl/buffers";
+import { LightGBuffer, LightRenderer } from "./lights";
 import { RenderParams, RenderParamsLight } from "../types";
 import { mat4, mat4Mul } from "../../gl/mat4";
 import { Uniforms } from "../../gl/unforms";
@@ -15,7 +14,7 @@ const icoSphere = createIcoSphere();
 export class PointLightRenderer implements LightRenderer {
   renderLight(
     gl: WebGL2RenderingContext,
-    gBuffer: GBuffer,
+    gBuffer: LightGBuffer,
     light: RenderParamsLight,
     renderParams: RenderParams
   ): void {
@@ -42,15 +41,15 @@ export class PointLightRenderer implements LightRenderer {
 
     uniforms.positionTexture = {
       type: "texture0",
-      value: gBuffer.position.texture,
+      value: gBuffer.renderFrameBuffer.getRenderTarget("position").texture,
     };
     uniforms.normalTexture = {
       type: "texture1",
-      value: gBuffer.normal.texture,
+      value: gBuffer.renderFrameBuffer.getRenderTarget("normal").texture,
     };
     uniforms.diffuseTexture = {
       type: "texture2",
-      value: gBuffer.color.texture,
+      value: gBuffer.renderFrameBuffer.getRenderTarget("color").texture,
     };
 
     model?.prepare(gl, uniforms);
