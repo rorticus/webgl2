@@ -52,6 +52,8 @@ export class PointLightRenderer implements LightRenderer {
       value: gBuffer.renderFrameBuffer.getRenderTarget("color").texture,
     };
 
+    gBuffer.lightingFrameBuffer.bind(gl);
+
     model?.prepare(gl, uniforms);
     model?.draw(gl);
   }

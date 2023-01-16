@@ -103,6 +103,7 @@ export class DirectionalLightPCF implements LightRenderer {
     };
 
     gBuffer.lightingFrameBuffer.bind(gl);
+
     model?.prepare(gl, uniforms);
     model?.draw(gl);
   }
@@ -159,14 +160,9 @@ export class DirectionalLightPCF implements LightRenderer {
 
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
-    const oldViewport: [number, number, number, number] = gl.getParameter(
-      gl.VIEWPORT
-    );
-    gl.viewport(0, 0, this.shadowBufferWidth, this.shadowBufferHeight);
-
     gl.enable(gl.DEPTH_TEST);
     gl.depthMask(true);
-    gl.cullFace(gl.BACK);
+    gl.cullFace(gl.FRONT);
 
     // draw each model from this perspective
     params.models.forEach((model) => {
@@ -194,8 +190,6 @@ export class DirectionalLightPCF implements LightRenderer {
 
     gl.disable(gl.DEPTH_TEST);
     gl.depthMask(false);
-
-    gl.viewport(...oldViewport);
 
     return {
       shadowed: {

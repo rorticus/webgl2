@@ -45,7 +45,7 @@ void main() {
         float shadowDepth = (shadowDepthMid + shadowDepthTop + shadowDepthBottom + shadowDepthLeft + shadowDepthRight) / 5.0;
 
         // Calculate the shadow factor
-        shadowFactor = shadowDepth < ((lightPosition.z - bias) * 0.5 + 0.5) ? 0.5 : 1.0;
+        shadowFactor = shadowDepth < ((lightPosition.z + bias) * 0.5 + 0.5) ? 0.5 : 1.0;
     }
 
     float diffuseFactor = max(0.0, dot(normal, -lightDirection));

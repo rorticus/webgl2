@@ -7,13 +7,15 @@ export interface FrameBufferColorAttachment {
 }
 export interface FrameBufferOptions {
   color?: Record<string, FrameBufferColorAttachment>;
-  depth?: boolean;
+  depth?: boolean | FrameBuffer;
 }
 
 export class FrameBuffer {
   private colorAttachments: Record<string, RenderTarget> = {};
   private depthBuffer: RenderTarget | null = null;
   private frameBuffer: WebGLFramebuffer;
+  private width: number;
+  private height: number;
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -21,6 +23,9 @@ export class FrameBuffer {
     height: number,
     options: FrameBufferOptions
   ) {
+    this.width = width;
+    this.height = height;
+
     Object.keys(options.color || {}).forEach((key) => {
       if (options.color?.[key].target) {
         this.colorAttachments[key] = options.color?.[
@@ -36,13 +41,15 @@ export class FrameBuffer {
       }
     });
 
-    if (options.depth) {
+    if (options.depth === true) {
       this.depthBuffer = new RenderTarget(
         gl.DEPTH24_STENCIL8,
         gl,
         width,
         height
       );
+    } else if (options.depth) {
+      this.depthBuffer = options.depth.depthBuffer;
     }
 
     this.frameBuffer = gl.createFramebuffer()!;
@@ -96,6 +103,7 @@ export class FrameBuffer {
 
   bind(gl: WebGL2RenderingContext) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
+    gl.viewport(0, 0, this.width, this.height);
   }
 
   resize(gl: WebGL2RenderingContext) {

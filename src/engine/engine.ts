@@ -102,7 +102,7 @@ export class Engine {
         color: {
           accum: { target: this.renderFrameBuffer, name: "accum" },
         },
-        depth: true,
+        depth: this.renderFrameBuffer,
       }
     );
 
@@ -230,39 +230,10 @@ export class Engine {
       };
 
       // g buffer pass
-      this.renderFrameBuffer.bind(gl);
-
-      gl.clear(
-        gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT
-      );
-
-      gl.disable(gl.BLEND);
-
-      gl.enable(gl.CULL_FACE);
-      gl.cullFace(gl.BACK);
-
-      // off screen rendering
       this.renderModels(renderParams);
 
-      // // lighting pass
-      this.lightingFrameBuffer.bind(gl);
-
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE);
-
-      gl.disable(gl.DEPTH_TEST);
-      gl.depthMask(false);
-
-      gl.cullFace(gl.FRONT);
-
+      // lighting pass
       this.renderLights(renderParams);
-
-      gl.disable(gl.BLEND);
-      gl.cullFace(gl.BACK);
-      gl.enable(gl.CULL_FACE);
-      gl.depthMask(true);
-      // gl.disable(gl.STENCIL_TEST);
-      gl.enable(gl.DEPTH_TEST);
 
       // final pass
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -300,7 +271,13 @@ export class Engine {
   renderModels(params: RenderParams) {
     const gl = this.gl;
 
+    this.renderFrameBuffer.bind(gl);
+
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.disable(gl.BLEND);
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
 
     if (this.root) {
       // render each entity in the scene
@@ -327,9 +304,11 @@ export class Engine {
   renderLights(params: RenderParams) {
     const gl = this.gl;
 
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
     if (this.root) {
+      gl.disable(gl.DEPTH_TEST);
+      gl.depthMask(false);
+      gl.cullFace(gl.FRONT);
+
       // render each entity in the scene
       params.lights.forEach((l) => {
         if (l.light.type in this.lightRenderers) {
@@ -344,6 +323,12 @@ export class Engine {
           );
         }
       });
+
+      gl.disable(gl.BLEND);
+      gl.cullFace(gl.BACK);
+      gl.enable(gl.CULL_FACE);
+      gl.depthMask(true);
+      gl.enable(gl.DEPTH_TEST);
     }
   }
 }
