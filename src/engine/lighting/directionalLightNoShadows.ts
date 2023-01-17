@@ -15,6 +15,8 @@ const directionalLightMaterial = new Material(dirLightVert, dirLightFrag);
 const icoSphere = createIcoSphere();
 
 export class DirectionalLightNoShadows implements LightRenderer {
+  dirLightMaterial = directionalLightMaterial;
+
   renderLight(
     gl: WebGL2RenderingContext,
     gBuffer: {
@@ -24,7 +26,7 @@ export class DirectionalLightNoShadows implements LightRenderer {
     light: RenderParamsLight,
     renderParams: RenderParams
   ): void {
-    const model = new Model(icoSphere, directionalLightMaterial);
+    const model = new Model(icoSphere, this.dirLightMaterial);
     model.geometry = icoSphere;
 
     let extraUniforms: Uniforms = {

@@ -34,6 +34,7 @@ import { LightRenderer } from "./lighting/lights";
 import { PointLightRenderer } from "./lighting/pointLight";
 import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
 import { FrameBuffer } from "../gl/framebuffer";
+import { DirectionalLightVariance } from "./lighting/directionalLightVariance";
 
 function positionToMat4(
   dest: Mat4,
@@ -108,7 +109,7 @@ export class Engine {
 
     this.lightRenderers = {
       point: new PointLightRenderer(),
-      directional: new DirectionalLightPCF(gl),
+      directional: new DirectionalLightVariance(gl),
     };
 
     if (!gl.getExtension("EXT_color_buffer_float")) {
