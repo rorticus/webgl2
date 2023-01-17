@@ -1,6 +1,4 @@
-import { LightRenderer } from "./lights";
-import { RenderParams, RenderParamsLight } from "../types";
-import Model from "../../gl/model";
+import { RenderParams } from "../types";
 import { Uniforms } from "../../gl/unforms";
 import { DirectionalLight } from "../lighting";
 import {
@@ -14,22 +12,19 @@ import { vec3, vec3Add, vec3DistanceTo, vec3Scale } from "../../gl/vec3";
 import Material from "../../gl/material";
 import shadowVertexShader from "./shaders/shadowdepth.vert";
 import shadowFragmentShader from "./shaders/shadowdepth.frag";
-import dirLightVert from "./shaders/dirlight-pcf.vert";
-import dirLightFrag from "./shaders/dirlight-pcf.frag";
-import { createIcoSphere } from "../../gl/sphere";
 import { FrameBuffer } from "../../gl/framebuffer";
+import { DirectionalLightNoShadows } from "./directionalLightNoShadows";
 
 const shadowMaterial = new Material(shadowVertexShader, shadowFragmentShader);
-const directionalLightMaterial = new Material(dirLightVert, dirLightFrag);
 
-const icoSphere = createIcoSphere();
-
-export class DirectionalLightPCF implements LightRenderer {
+export class DirectionalLightPCF extends DirectionalLightNoShadows {
   shadowBufferWidth: number;
   shadowBufferHeight: number;
   shadowFrameBuffer: FrameBuffer;
 
   constructor(gl: WebGL2RenderingContext) {
+    super();
+
     this.shadowBufferWidth = 2048;
     this.shadowBufferHeight = 2048;
 
@@ -41,71 +36,6 @@ export class DirectionalLightPCF implements LightRenderer {
         depth: true,
       }
     );
-  }
-
-  renderLight(
-    gl: WebGL2RenderingContext,
-    gBuffer: {
-      renderFrameBuffer: FrameBuffer;
-      lightingFrameBuffer: FrameBuffer;
-    },
-    light: RenderParamsLight,
-    renderParams: RenderParams
-  ): void {
-    const model = new Model(icoSphere, directionalLightMaterial);
-    model.geometry = icoSphere;
-
-    let extraUniforms: Uniforms = {
-      lightDirection: {
-        type: "vec3",
-        value: (light.light as DirectionalLight).direction,
-      },
-      lightColor: { type: "vec3", value: light.light.color },
-      lightIntensity: { type: "float", value: light.light.intensity },
-    };
-
-    const world = mat4Mul(
-      mat4(),
-      light.objectToWorldMatrix,
-      renderParams.worldToViewMatrix
-    );
-
-    if (light.light.shadows) {
-      extraUniforms = {
-        ...extraUniforms,
-        ...this.renderShadows(
-          gl,
-          light.light as DirectionalLight,
-          renderParams
-        ),
-      };
-    }
-
-    const uniforms: Uniforms = {
-      world: { type: "mat4", value: world },
-      invWorld: { type: "mat4", value: renderParams.viewToWorldMatrix },
-      projection: { type: "mat4", value: renderParams.camera.projection },
-      cameraPosition: { type: "vec3", value: renderParams.camera.position },
-      ...extraUniforms,
-    };
-
-    uniforms.positionTexture = {
-      type: "texture0",
-      value: gBuffer.renderFrameBuffer.getRenderTarget("position").texture,
-    };
-    uniforms.normalTexture = {
-      type: "texture1",
-      value: gBuffer.renderFrameBuffer.getRenderTarget("normal").texture,
-    };
-    uniforms.diffuseTexture = {
-      type: "texture2",
-      value: gBuffer.renderFrameBuffer.getRenderTarget("color").texture,
-    };
-
-    gBuffer.lightingFrameBuffer.bind(gl);
-
-    model?.prepare(gl, uniforms);
-    model?.draw(gl);
   }
 
   renderShadows(
@@ -187,7 +117,6 @@ export class DirectionalLightPCF implements LightRenderer {
     });
 
     gl.cullFace(gl.FRONT);
-
     gl.disable(gl.DEPTH_TEST);
     gl.depthMask(false);
 

@@ -42,6 +42,17 @@ export class DirectionalLightNoShadows implements LightRenderer {
       renderParams.worldToViewMatrix
     );
 
+    if (light.light.shadows) {
+      extraUniforms = {
+        ...extraUniforms,
+        ...this.renderShadows(
+          gl,
+          light.light as DirectionalLight,
+          renderParams
+        ),
+      };
+    }
+
     const uniforms: Uniforms = {
       world: { type: "mat4", value: world },
       invWorld: { type: "mat4", value: renderParams.viewToWorldMatrix },
@@ -67,5 +78,12 @@ export class DirectionalLightNoShadows implements LightRenderer {
 
     model?.prepare(gl, uniforms);
     model?.draw(gl);
+  }
+  renderShadows(
+    _gl: WebGL2RenderingContext,
+    _light: DirectionalLight,
+    _params: RenderParams
+  ): Uniforms {
+    return {};
   }
 }
