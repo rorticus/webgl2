@@ -28,7 +28,7 @@ float sampleVarianceShadowMap(vec2 coords, float depth) {
     float p = step(depth, moments.x);
     float variance = max(moments.y - moments.x * moments.x, 0.00002);
     float d = depth - moments.x;
-    float q = linstep(0.4, 1.0, variance / (variance + d * d));
+    float q = linstep(0.6, 1.0, variance / (variance + d * d));
 
     return min(max(p, q), 1.0);
 }
@@ -41,12 +41,16 @@ void main() {
 
     float shadowFactor = 1.0;
 
-    if (shadowed) {
-        vec4 lightPosition = lightProjectionMatrix * lightViewMatrix * invWorld * vec4(position, 1.0);
-        lightPosition /= lightPosition.w;
+    if(shadowed) {
+        if(dot(normal, -lightDirection) < 0.0) {
+            shadowFactor = 0.5;
+        } else {
+            vec4 lightPosition = lightProjectionMatrix * lightViewMatrix * invWorld * vec4(position, 1.0);
+            lightPosition /= lightPosition.w;
 
-        vec2 textureCoordinates = lightPosition.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);
-        shadowFactor = max(0.5, sampleVarianceShadowMap(textureCoordinates, lightPosition.z * 0.5 + 0.5));
+            vec2 textureCoordinates = lightPosition.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);
+            shadowFactor = max(0.5, sampleVarianceShadowMap(textureCoordinates, lightPosition.z * 0.5 + 0.5));
+        }
     }
 
     float diffuseFactor = max(0.0, dot(normal, -lightDirection));
