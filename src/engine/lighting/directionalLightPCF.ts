@@ -1,13 +1,7 @@
 import { RenderParams } from "../types";
 import { Uniforms } from "../../gl/unforms";
 import { DirectionalLight } from "../lighting";
-import {
-  mat4,
-  mat4Inv,
-  mat4LookAt,
-  mat4Mul,
-  mat4Perspective,
-} from "../../gl/mat4";
+import { mat4, mat4Inv, mat4LookAt, mat4Mul, mat4Ortho } from "../../gl/mat4";
 import { vec3, vec3Add, vec3DistanceTo, vec3Scale } from "../../gl/vec3";
 import Material from "../../gl/material";
 import shadowVertexShader from "./shaders/shadowdepth.vert";
@@ -60,18 +54,13 @@ export class DirectionalLightPCF extends DirectionalLightNoShadows {
       vec3DistanceTo(cameraPosition, boundingSphere.center) +
       boundingSphere.radius;
 
-    // Calculate the field of view
-    let fieldOfView =
-      Math.PI *
-      2 *
-      Math.atan(boundingSphere.radius / (nearPlaneDistance + farPlaneDistance));
-
     // Create the projection matrix
-    let projectionMatrix = mat4Perspective(
+    const projectionMatrix = mat4Ortho(
       mat4(),
-      fieldOfView,
-      this.shadowBufferWidth,
-      this.shadowBufferHeight,
+      -boundingSphere.radius,
+      boundingSphere.radius,
+      -boundingSphere.radius,
+      boundingSphere.radius,
       nearPlaneDistance,
       farPlaneDistance
     );
@@ -88,11 +77,11 @@ export class DirectionalLightPCF extends DirectionalLightNoShadows {
 
     this.shadowFrameBuffer.bind(gl);
 
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-
     gl.enable(gl.DEPTH_TEST);
     gl.depthMask(true);
     gl.cullFace(gl.FRONT);
+
+    gl.clear(gl.DEPTH_BUFFER_BIT);
 
     // draw each model from this perspective
     params.models.forEach((model) => {

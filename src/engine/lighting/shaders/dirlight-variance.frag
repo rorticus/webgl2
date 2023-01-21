@@ -18,6 +18,21 @@ uniform bool shadowed;
 
 out vec4 fragColor;
 
+float linstep(float low, float high, float v) {
+return clamp((v - low) / (high - low), 0.0, 1.0);
+}
+
+float sampleVarianceShadowMap(vec2 coords, float depth) {
+    vec2 moments = texture(shadowTexture, coords).xy;
+
+    float p = step(depth, moments.x);
+    float variance = max(moments.y - moments.x * moments.x, 0.00002);
+    float d = depth - moments.x;
+    float q = linstep(0.2, 1.0, variance / (variance + d * d));
+
+    return min(max(p, q), 1.0);
+}
+
 void main() {
     ivec2 fragCoord = ivec2(gl_FragCoord.xy);
     vec3 position = texelFetch(positionTexture, fragCoord, 0).xyz;
@@ -31,15 +46,7 @@ void main() {
         lightPosition /= lightPosition.w;
 
         vec2 textureCoordinates = lightPosition.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);
-        vec2 moments = texture(shadowTexture, textureCoordinates).xy;
-        float z = lightPosition.z * 0.5 + 0.5;
-
-        float p = step(z, moments.x);
-        float variance = max(moments.y - moments.x * moments.x, 0.00002);
-        float d = z - moments.x;
-        float q = variance / (variance + d * d);
-
-        shadowFactor = min(max(p, q), 1.0);
+        shadowFactor = max(0.5, sampleVarianceShadowMap(textureCoordinates, lightPosition.z * 0.5 + 0.5));
     }
 
     float diffuseFactor = max(0.0, dot(normal, -lightDirection));

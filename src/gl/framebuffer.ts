@@ -4,6 +4,7 @@ export interface FrameBufferColorAttachment {
   format?: number;
   target?: FrameBuffer;
   name?: string;
+  filter?: number;
 }
 export interface FrameBufferOptions {
   color?: Record<string, FrameBufferColorAttachment>;
@@ -36,14 +37,15 @@ export class FrameBuffer {
           options.color?.[key].format || 0,
           gl,
           width,
-          height
+          height,
+          options.color?.[key].filter
         );
       }
     });
 
     if (options.depth === true) {
       this.depthBuffer = new RenderTarget(
-        gl.DEPTH24_STENCIL8,
+        gl.DEPTH_COMPONENT32F,
         gl,
         width,
         height

@@ -1,13 +1,7 @@
 import { RenderParams } from "../types";
 import { Uniforms } from "../../gl/unforms";
 import { DirectionalLight } from "../lighting";
-import {
-  mat4,
-  mat4Inv,
-  mat4LookAt,
-  mat4Mul,
-  mat4Perspective,
-} from "../../gl/mat4";
+import { mat4, mat4Inv, mat4LookAt, mat4Mul, mat4Ortho } from "../../gl/mat4";
 import { vec3, vec3Add, vec3DistanceTo, vec3Scale } from "../../gl/vec3";
 import Material from "../../gl/material";
 import shadowVertexShader from "./shaders/shadowdepth.vert";
@@ -29,8 +23,8 @@ export class DirectionalLightVariance extends DirectionalLightNoShadows {
     super();
     this.dirLightMaterial = dirLightMaterial;
 
-    this.shadowBufferWidth = 512;
-    this.shadowBufferHeight = 512;
+    this.shadowBufferWidth = 1024;
+    this.shadowBufferHeight = 1024;
 
     this.shadowFrameBuffer = new FrameBuffer(
       gl,
@@ -38,7 +32,7 @@ export class DirectionalLightVariance extends DirectionalLightNoShadows {
       this.shadowBufferHeight,
       {
         color: {
-          depth: { format: gl.RGBA32F },
+          depth: { format: gl.RGBA32F, filter: gl.LINEAR },
         },
         depth: true,
       }
@@ -68,17 +62,27 @@ export class DirectionalLightVariance extends DirectionalLightNoShadows {
       boundingSphere.radius;
 
     // Calculate the field of view
-    let fieldOfView =
-      Math.PI *
-      2 *
-      Math.atan(boundingSphere.radius / (nearPlaneDistance + farPlaneDistance));
+    // let fieldOfView =
+    //   Math.PI *
+    //   2 *
+    //   Math.atan(boundingSphere.radius / (nearPlaneDistance + farPlaneDistance));
 
     // Create the projection matrix
-    let projectionMatrix = mat4Perspective(
+    // let projectionMatrix = mat4Perspective(
+    //   mat4(),
+    //   fieldOfView,
+    //   this.shadowBufferWidth,
+    //   this.shadowBufferHeight,
+    //   nearPlaneDistance,
+    //   farPlaneDistance
+    // );
+
+    const projectionMatrix = mat4Ortho(
       mat4(),
-      fieldOfView,
-      this.shadowBufferWidth,
-      this.shadowBufferHeight,
+      -boundingSphere.radius,
+      boundingSphere.radius,
+      -boundingSphere.radius,
+      boundingSphere.radius,
       nearPlaneDistance,
       farPlaneDistance
     );
@@ -95,11 +99,11 @@ export class DirectionalLightVariance extends DirectionalLightNoShadows {
 
     this.shadowFrameBuffer.bind(gl);
 
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-
     gl.enable(gl.DEPTH_TEST);
     gl.depthMask(true);
-    gl.cullFace(gl.FRONT);
+    gl.cullFace(gl.BACK);
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // draw each model from this perspective
     params.models.forEach((model) => {

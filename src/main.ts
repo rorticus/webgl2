@@ -13,6 +13,8 @@ import {
 } from "./engine/components";
 import gbufferVert from "./shaders/gbuffer.vert";
 import gbufferFrag from "./shaders/gbuffer.frag";
+import { drawWebglTexture } from "./gl/helpers";
+import { DirectionalLightVariance } from "./engine/lighting/directionalLightVariance";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const engine = new Engine(canvas);
@@ -116,21 +118,46 @@ calculateCameraPosition();
 engine.start();
 
 const frame = () => {
-  modelOrientation[1] += 0.01;
+  modelOrientation[1] += 0.001;
   requestAnimationFrame(frame);
 };
-// frame();
+frame();
 
-// setTimeout(() => {
-// const color = drawWebglTexture(engine.gl, engine.gBuffer.color.texture);
-// const position = drawWebglTexture(engine.gl, engine.gBuffer.position.texture);
-// const normal = drawWebglTexture(engine.gl, engine.gBuffer.normal.texture);
-// const depth = drawWebglTexture(engine.gl, engine.gBuffer.shadowDepth.texture);
+function debug() {
+  const color = drawWebglTexture(
+    engine.gl,
+    engine.renderFrameBuffer.getRenderTarget("color").texture,
+    engine.gl.drawingBufferWidth,
+    engine.gl.drawingBufferHeight
+  );
+  const position = drawWebglTexture(
+    engine.gl,
+    engine.renderFrameBuffer.getRenderTarget("position").texture,
+    engine.gl.drawingBufferWidth,
+    engine.gl.drawingBufferHeight
+  );
 
-// document.body.appendChild(color);
-// document.body.appendChild(position);
-// document.body.appendChild(normal);
-// document.body.appendChild(depth);
-// }, 100);
+  const dv = engine.lightRenderers["directional"] as DirectionalLightVariance;
+  const shadow = drawWebglTexture(
+    engine.gl,
+    dv.shadowFrameBuffer.getRenderTarget("depth").texture,
+    dv.shadowBufferWidth,
+    dv.shadowBufferHeight
+  );
+
+  document.body.appendChild(color);
+  document.body.appendChild(position);
+  document.body.appendChild(shadow);
+
+  setTimeout(() => {
+    document.body.removeChild(color);
+    document.body.removeChild(position);
+    document.body.removeChild(shadow);
+
+    debug();
+  }, 1000);
+}
+
+debug();
 
 export {};

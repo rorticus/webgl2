@@ -31,9 +31,10 @@ export class BoundingSphere {
       (max[2] + min[2]) / 2
     );
 
-    const radius = Math.max(
-      Math.max(max[0] - center[0], max[1] - center[1]),
-      max[2] - center[2]
+    const radius = Math.sqrt(
+      Math.pow(max[0] - center[0], 2) +
+        Math.pow(max[1] - center[1], 2) +
+        Math.pow(max[2] - center[2], 2)
     );
 
     return new BoundingSphere(center, radius);

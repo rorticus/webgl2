@@ -118,6 +118,8 @@ export class Engine {
       );
     }
 
+    gl.getExtension("OES_texture_float_linear");
+
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0, 0, 0, 1);
     gl.clearDepth(1.0);
@@ -274,11 +276,11 @@ export class Engine {
 
     this.renderFrameBuffer.bind(gl);
 
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
     gl.disable(gl.BLEND);
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     if (this.root) {
       // render each entity in the scene
