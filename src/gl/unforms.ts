@@ -26,6 +26,11 @@ export interface Vec3Uniform {
   value: Vec3;
 }
 
+export interface Vec2Uniform {
+  type: "vec2";
+  value: [number, number] | Float32Array;
+}
+
 export interface Mat4Uniform {
   type: "mat4";
   value: Vec4;
@@ -41,6 +46,7 @@ export type Uniform =
   | FloatUniform
   | Vec4Uniform
   | Vec3Uniform
+  | Vec2Uniform
   | Mat4Uniform
   | TextureUniform
   | BoolUniform;
@@ -66,6 +72,9 @@ export function setUniform(
       break;
     case "vec3":
       gl.uniform3fv(uniform, value.value);
+      break;
+    case "vec2":
+      gl.uniform2fv(uniform, value.value);
       break;
     case "mat4":
       gl.uniformMatrix4fv(uniform, false, value.value);

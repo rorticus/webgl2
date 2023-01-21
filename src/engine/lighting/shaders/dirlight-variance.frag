@@ -28,7 +28,7 @@ float sampleVarianceShadowMap(vec2 coords, float depth) {
     float p = step(depth, moments.x);
     float variance = max(moments.y - moments.x * moments.x, 0.00002);
     float d = depth - moments.x;
-    float q = linstep(0.2, 1.0, variance / (variance + d * d));
+    float q = linstep(0.4, 1.0, variance / (variance + d * d));
 
     return min(max(p, q), 1.0);
 }

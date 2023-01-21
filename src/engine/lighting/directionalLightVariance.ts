@@ -10,14 +10,19 @@ import { FrameBuffer } from "../../gl/framebuffer";
 import { DirectionalLightNoShadows } from "./directionalLightNoShadows";
 import dirLightVert from "./shaders/dirlight-pcf.vert";
 import dirLightFrag from "./shaders/dirlight-variance.frag";
+import blurVert from "./shaders/blur.vert";
+import blurFrag from "./shaders/blur.frag";
+import { applyFilter } from "../../gl/helpers";
 
 const shadowMaterial = new Material(shadowVertexShader, shadowFragmentShader);
 const dirLightMaterial = new Material(dirLightVert, dirLightFrag);
+const blurMaterial = new Material(blurVert, blurFrag);
 
 export class DirectionalLightVariance extends DirectionalLightNoShadows {
   shadowBufferWidth: number;
   shadowBufferHeight: number;
   shadowFrameBuffer: FrameBuffer;
+  blurredShadowBuffer: FrameBuffer;
 
   constructor(gl: WebGL2RenderingContext) {
     super();
@@ -35,6 +40,16 @@ export class DirectionalLightVariance extends DirectionalLightNoShadows {
           depth: { format: gl.RGBA32F, filter: gl.LINEAR },
         },
         depth: true,
+      }
+    );
+    this.blurredShadowBuffer = new FrameBuffer(
+      gl,
+      this.shadowBufferWidth,
+      this.shadowBufferHeight,
+      {
+        color: {
+          depth: { format: gl.RGBA32F, filter: gl.LINEAR },
+        },
       }
     );
   }
@@ -127,9 +142,37 @@ export class DirectionalLightVariance extends DirectionalLightNoShadows {
       model?.model.geometry.draw(gl, uniforms);
     });
 
-    gl.cullFace(gl.FRONT);
+    const blurAmount = 4;
+    applyFilter(
+      gl,
+      blurMaterial,
+      this.shadowFrameBuffer.getRenderTarget("depth").texture,
+      this.blurredShadowBuffer,
+      {
+        blurScale: {
+          type: "vec2",
+          value: [(1.0 / this.shadowBufferWidth) * blurAmount, 0],
+        },
+      }
+    );
+
     gl.disable(gl.DEPTH_TEST);
     gl.depthMask(false);
+
+    applyFilter(
+      gl,
+      blurMaterial,
+      this.blurredShadowBuffer.getRenderTarget("depth").texture,
+      this.shadowFrameBuffer,
+      {
+        blurScale: {
+          type: "vec2",
+          value: [0, (1.0 / this.shadowBufferHeight) * blurAmount],
+        },
+      }
+    );
+
+    gl.cullFace(gl.FRONT);
 
     return {
       shadowed: {

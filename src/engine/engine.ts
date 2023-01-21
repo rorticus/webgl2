@@ -14,8 +14,6 @@ import {
   PositionComponent,
 } from "./components";
 import { Vec3, vec3 } from "../gl/vec3";
-import Model from "../gl/model";
-import Geometry from "../gl/geometry";
 import Material from "../gl/material";
 import accumVert from "../shaders/accum.vert";
 import accumFrag from "../shaders/accum.frag";
@@ -32,9 +30,9 @@ import { BoundingSphere } from "../gl/boundingSphere";
 import { RenderParams } from "./types";
 import { LightRenderer } from "./lighting/lights";
 import { PointLightRenderer } from "./lighting/pointLight";
-import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
 import { FrameBuffer } from "../gl/framebuffer";
 import { DirectionalLightVariance } from "./lighting/directionalLightVariance";
+import { applyFilter } from "../gl/helpers";
 
 function positionToMat4(
   dest: Mat4,
@@ -72,7 +70,7 @@ export class Engine {
   renderFrameBuffer: FrameBuffer;
   lightingFrameBuffer: FrameBuffer;
 
-  private finalQuad: Model;
+  private finalMaterial: Material;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -128,26 +126,7 @@ export class Engine {
     gl.enable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST);
 
-    this.finalQuad = new Model(
-      new Geometry(
-        {
-          position: {
-            type: "vec3",
-            data: new Float32Array([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0]),
-          },
-          uv: {
-            type: "vec2",
-            data: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]),
-          },
-        },
-        [
-          {
-            indices: new Uint16Array([0, 1, 2, 0, 2, 3]),
-          },
-        ]
-      ),
-      new Material(accumVert, accumFrag)
-    );
+    this.finalMaterial = new Material(accumVert, accumFrag);
 
     this.resize(canvas.clientWidth, canvas.clientHeight);
   }
@@ -239,17 +218,12 @@ export class Engine {
       this.renderLights(renderParams);
 
       // final pass
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-      this.finalQuad.prepare(gl, {
-        positionTexture: {
-          type: "texture0",
-          // value: (this.lightRenderers["directional"] as any).shadowDepthBuffer
-          //   .texture,
-          value: this.renderFrameBuffer.getRenderTarget("accum").texture,
-        },
-      });
-      this.finalQuad.draw(gl);
+      applyFilter(
+        gl,
+        this.finalMaterial,
+        this.renderFrameBuffer.getRenderTarget("accum").texture,
+        null
+      );
 
       requestAnimationFrame(render);
     };

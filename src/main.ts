@@ -140,7 +140,7 @@ function debug() {
   const dv = engine.lightRenderers["directional"] as DirectionalLightVariance;
   const shadow = drawWebglTexture(
     engine.gl,
-    dv.shadowFrameBuffer.getRenderTarget("depth").texture,
+    dv.blurredShadowBuffer.getRenderTarget("depth").texture,
     dv.shadowBufferWidth,
     dv.shadowBufferHeight
   );

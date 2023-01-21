@@ -1,3 +1,9 @@
+import { FrameBuffer } from "./framebuffer";
+import Material from "./material";
+import Model from "./model";
+import { createQuad } from "./quad";
+import { Uniforms } from "./unforms";
+
 export function drawWebglTexture(
   gl: WebGL2RenderingContext,
   texture: WebGLTexture,
@@ -37,4 +43,27 @@ export function drawWebglTexture(
   ctx.putImageData(imageData, 0, 0);
 
   return canvas;
+}
+
+const quad = createQuad();
+
+export function applyFilter(
+  gl: WebGL2RenderingContext,
+  material: Material,
+  source: WebGLTexture,
+  dest: FrameBuffer | null,
+  uniforms: Uniforms = {}
+) {
+  if (!dest) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  } else {
+    dest.bind(gl);
+  }
+
+  const model = new Model(quad, material);
+  model.prepare(gl, {
+    tex0: { type: "texture0", value: source },
+    ...uniforms,
+  });
+  model.draw(gl);
 }
