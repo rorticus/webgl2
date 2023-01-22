@@ -33,6 +33,8 @@ import { PointLightRenderer } from "./lighting/pointLight";
 import { FrameBuffer } from "../gl/framebuffer";
 import { DirectionalLightVariance } from "./lighting/directionalLightVariance";
 import { applyFilter } from "../gl/helpers";
+import { DirectionalLightNoShadows } from "./lighting/directionalLightNoShadows";
+import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
 
 function positionToMat4(
   dest: Mat4,
@@ -108,6 +110,8 @@ export class Engine {
     this.lightRenderers = {
       point: new PointLightRenderer(),
       directional: new DirectionalLightVariance(gl),
+      directionalNoShadows: new DirectionalLightNoShadows(),
+      directionalPCF: new DirectionalLightPCF(gl),
     };
 
     if (!gl.getExtension("EXT_color_buffer_float")) {
@@ -266,6 +270,7 @@ export class Engine {
         const invWorld = mat4Inv(mat4(), world);
 
         const uniforms: Uniforms = {
+          localWorld: { type: "mat4", value: model.objectToWorldMatrix },
           world: { type: "mat4", value: world },
           invWorld: { type: "mat4", value: invWorld },
           projection: { type: "mat4", value: projectionMatrix },

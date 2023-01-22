@@ -11,7 +11,7 @@ export interface PointLight extends AnyLight {
 }
 
 export interface DirectionalLight extends AnyLight {
-  type: "directional";
+  type: "directional" | "directionalNoShadows" | "directionalPCF";
   color: Vec3;
   intensity: number;
   direction: Vec3;

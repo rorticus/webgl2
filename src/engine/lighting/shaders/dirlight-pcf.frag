@@ -48,7 +48,7 @@ void main() {
         shadowFactor = shadowDepth < ((lightPosition.z + bias) * 0.5 + 0.5) ? 0.5 : 1.0;
     }
 
-    float diffuseFactor = max(0.0, dot(normal, -lightDirection));
+    float diffuseFactor = max(0.0, dot(lightDirection, normal));
     vec4 diffuseLightColor = vec4(lightColor * lightIntensity * diffuseFactor, 1.0f);
     fragColor = diffuse * diffuseLightColor * shadowFactor;
 }

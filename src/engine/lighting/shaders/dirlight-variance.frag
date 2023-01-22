@@ -19,7 +19,7 @@ uniform bool shadowed;
 out vec4 fragColor;
 
 float linstep(float low, float high, float v) {
-return clamp((v - low) / (high - low), 0.0, 1.0);
+    return clamp((v - low) / (high - low), 0.0, 1.0);
 }
 
 float sampleVarianceShadowMap(vec2 coords, float depth) {
@@ -41,19 +41,15 @@ void main() {
 
     float shadowFactor = 1.0;
 
-    if(shadowed) {
-        if(dot(normal, -lightDirection) < 0.0) {
-            shadowFactor = 0.5;
-        } else {
-            vec4 lightPosition = lightProjectionMatrix * lightViewMatrix * invWorld * vec4(position, 1.0);
-            lightPosition /= lightPosition.w;
+    if (shadowed) {
+        vec4 lightPosition = lightProjectionMatrix * lightViewMatrix * invWorld * vec4(position, 1.0);
+        lightPosition /= lightPosition.w;
 
-            vec2 textureCoordinates = lightPosition.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);
-            shadowFactor = max(0.5, sampleVarianceShadowMap(textureCoordinates, lightPosition.z * 0.5 + 0.5));
-        }
+        vec2 textureCoordinates = lightPosition.xy * vec2(0.5, 0.5) + vec2(0.5, 0.5);
+        shadowFactor = max(0.5, sampleVarianceShadowMap(textureCoordinates, lightPosition.z * 0.5 + 0.5));
     }
 
-    float diffuseFactor = max(0.0, dot(normal, -lightDirection));
+    float diffuseFactor = max(0.0, dot(lightDirection, normal));
     vec4 diffuseLightColor = vec4(lightColor * lightIntensity * diffuseFactor, 1.0f);
     fragColor = diffuse * diffuseLightColor * shadowFactor;
 }

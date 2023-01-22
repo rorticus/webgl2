@@ -14,7 +14,6 @@ import {
 import gbufferVert from "./shaders/gbuffer.vert";
 import gbufferFrag from "./shaders/gbuffer.frag";
 import { drawWebglTexture } from "./gl/helpers";
-import { DirectionalLightVariance } from "./engine/lighting/directionalLightVariance";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const engine = new Engine(canvas);
@@ -110,6 +109,9 @@ window.addEventListener("mousemove", (e) => {
 });
 
 window.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+
   radius += e.deltaY * 0.01;
   calculateCameraPosition();
 });
@@ -121,7 +123,7 @@ const frame = () => {
   modelOrientation[1] += 0.001;
   requestAnimationFrame(frame);
 };
-frame();
+// frame();
 
 function debug() {
   const color = drawWebglTexture(
@@ -136,23 +138,31 @@ function debug() {
     engine.gl.drawingBufferWidth,
     engine.gl.drawingBufferHeight
   );
-
-  const dv = engine.lightRenderers["directional"] as DirectionalLightVariance;
-  const shadow = drawWebglTexture(
+  const normals = drawWebglTexture(
     engine.gl,
-    dv.blurredShadowBuffer.getRenderTarget("depth").texture,
-    dv.shadowBufferWidth,
-    dv.shadowBufferHeight
+    engine.renderFrameBuffer.getRenderTarget("normal").texture,
+    engine.gl.drawingBufferWidth,
+    engine.gl.drawingBufferHeight
   );
+
+  // const dv = engine.lightRenderers["directional"] as DirectionalLightVariance;
+  // const shadow = drawWebglTexture(
+  //   engine.gl,
+  //   dv.blurredShadowBuffer.getRenderTarget("depth").texture,
+  //   dv.shadowBufferWidth,
+  //   dv.shadowBufferHeight
+  // );
 
   document.body.appendChild(color);
   document.body.appendChild(position);
-  document.body.appendChild(shadow);
+  document.body.appendChild(normals);
+  // document.body.appendChild(shadow);
 
   setTimeout(() => {
     document.body.removeChild(color);
     document.body.removeChild(position);
-    document.body.removeChild(shadow);
+    document.body.removeChild(normals);
+    // document.body.removeChild(shadow);
 
     debug();
   }, 1000);
