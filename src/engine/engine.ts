@@ -12,6 +12,7 @@ import {
   LightComponent,
   ModelComponent,
   PositionComponent,
+  ShapeComponent,
 } from "./components";
 import { Vec3, vec3 } from "../gl/vec3";
 import Material from "../gl/material";
@@ -35,6 +36,7 @@ import { DirectionalLightVariance } from "./lighting/directionalLightVariance";
 import { applyFilter } from "../gl/helpers";
 import { DirectionalLightNoShadows } from "./lighting/directionalLightNoShadows";
 import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
+import { drawLine, drawPoint } from "./shapes";
 
 function positionToMat4(
   dest: Mat4,
@@ -228,6 +230,22 @@ export class Engine {
         this.renderFrameBuffer.getRenderTarget("accum").texture,
         null
       );
+
+      // render 2d shapes
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.CULL_FACE);
+
+      this.root?.entities.getEntities(ShapeComponent)?.forEach((entity) => {
+        const shape = this.root?.entities.getComponent(entity, ShapeComponent)!;
+        if (shape.type === "point") {
+          drawPoint(gl, shape);
+        } else if (shape.type === "line") {
+          drawLine(gl, shape);
+        }
+      });
+
+      gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.CULL_FACE);
 
       requestAnimationFrame(render);
     };

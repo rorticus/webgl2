@@ -5,10 +5,12 @@ import {
   LightComponent,
   ModelComponent,
   PositionComponent,
+  ShapeComponent,
 } from "./components";
 import Model from "../gl/model";
 import { Vec3 } from "../gl/vec3";
 import { Light } from "./lighting";
+import { Shape } from "./types";
 
 interface BaseSceneComponents {
   [ModelComponent]: Model;
@@ -19,6 +21,7 @@ interface BaseSceneComponents {
   };
 
   [LightComponent]: Light;
+  [ShapeComponent]: Shape;
 }
 
 interface BaseSceneResources {}

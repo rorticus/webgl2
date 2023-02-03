@@ -55,6 +55,7 @@ export function applyFilter(
   uniforms: Uniforms = {}
 ) {
   if (!dest) {
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   } else {
     dest.bind(gl);

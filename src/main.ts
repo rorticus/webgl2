@@ -10,10 +10,12 @@ import {
   LightComponent,
   ModelComponent,
   PositionComponent,
+  ShapeComponent,
 } from "./engine/components";
 import gbufferVert from "./shaders/gbuffer.vert";
 import gbufferFrag from "./shaders/gbuffer.frag";
 import { drawWebglTexture } from "./gl/helpers";
+import { vec2 } from "./gl/vec2";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const engine = new Engine(canvas);
@@ -55,6 +57,24 @@ scene.entities.addEntity({
     position: vec3(2, 2, -4),
     orientation: vec3(),
     scale: 10,
+  },
+});
+
+scene.entities.addEntity({
+  [ShapeComponent]: {
+    type: "point",
+    radius: 5,
+    position: vec2(-0.25, 0.25),
+    color: vec3(1, 1, 1),
+  },
+});
+
+scene.entities.addEntity({
+  [ShapeComponent]: {
+    type: "line",
+    color: vec3(1, 1, 1),
+    start: vec2(-0.25, -0.25),
+    end: vec2(0.25, 0.25),
   },
 });
 

@@ -16,6 +16,7 @@ class Geometry {
   groups: MaterialGroup[] = [];
 
   boundingSphere?: BoundingSphere;
+  drawType = WebGL2RenderingContext.TRIANGLES;
 
   constructor(
     vertexBufferData: Record<string, VBOData>,
@@ -70,7 +71,7 @@ class Geometry {
         setUniform(gl, uniformMap[uniformName], allUniforms[uniformName]);
       });
 
-      gl.drawElements(gl.TRIANGLES, g.indices.length, gl.UNSIGNED_SHORT, 0);
+      gl.drawElements(this.drawType, g.indices.length, gl.UNSIGNED_SHORT, 0);
     }
   }
 }
