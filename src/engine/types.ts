@@ -4,7 +4,6 @@ import { Mat4 } from "../gl/mat4";
 import { Light } from "./lighting";
 import { BoundingSphere } from "../gl/boundingSphere";
 import { Camera } from "../gl/camera";
-import { Vec2 } from "../gl/vec2";
 
 export interface RenderParamsObj {
   position: Vec3;
@@ -36,30 +35,21 @@ export interface RenderParams {
 
 export interface Point {
   type: "point";
-  position: Vec2;
-  radius: number;
-  color: Vec3;
 }
 
 export interface Line {
   type: "line";
-  start: Vec2;
-  end: Vec2;
-  color: Vec3;
 }
 
 export interface Rect {
   type: "rect";
-  position: Vec2;
-  size: Vec2;
-  color: Vec3;
+  halfWidth: number;
+  halfHeight: number;
 }
 
 export interface Circle {
   type: "circle";
-  position: Vec2;
   radius: number;
-  color: Vec3;
 }
 
 export type Shape = Point | Line | Rect | Circle;

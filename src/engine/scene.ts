@@ -3,6 +3,7 @@ import { Camera } from "../gl/camera";
 import { EntityPool } from "./entities";
 import {
   LightComponent,
+  Model2DComponent,
   ModelComponent,
   PositionComponent,
   ShapeComponent,
@@ -21,6 +22,7 @@ interface BaseSceneComponents {
   };
 
   [LightComponent]: Light;
+  [Model2DComponent]: Model;
   [ShapeComponent]: Shape;
 }
 

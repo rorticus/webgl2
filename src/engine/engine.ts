@@ -10,9 +10,9 @@ import {
 } from "../gl/mat4";
 import {
   LightComponent,
+  Model2DComponent,
   ModelComponent,
   PositionComponent,
-  ShapeComponent,
 } from "./components";
 import { Vec3, vec3 } from "../gl/vec3";
 import Material from "../gl/material";
@@ -36,7 +36,7 @@ import { DirectionalLightVariance } from "./lighting/directionalLightVariance";
 import { applyFilter } from "../gl/helpers";
 import { DirectionalLightNoShadows } from "./lighting/directionalLightNoShadows";
 import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
-import { drawLine, drawPoint } from "./shapes";
+import Model from "../gl/model";
 
 function positionToMat4(
   dest: Mat4,
@@ -235,13 +235,27 @@ export class Engine {
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.CULL_FACE);
 
-      this.root?.entities.getEntities(ShapeComponent)?.forEach((entity) => {
-        const shape = this.root?.entities.getComponent(entity, ShapeComponent)!;
-        if (shape.type === "point") {
-          drawPoint(gl, shape);
-        } else if (shape.type === "line") {
-          drawLine(gl, shape);
-        }
+      this.root?.entities.getEntities(Model2DComponent)?.forEach((entity) => {
+        const p = this.root?.entities.getComponent(entity, PositionComponent)!;
+
+        const position = p?.position ?? vec3(0, 0, 0);
+        const orientation = p?.orientation ?? vec3(0, 0, 0);
+        const scale = p?.scale ?? 1;
+        const worldMatrix = positionToMat4(
+          mat4(),
+          position,
+          orientation,
+          scale
+        );
+
+        const model: Model = this.root?.entities.getComponent(
+          entity,
+          Model2DComponent
+        )!;
+        model.prepare(gl, {
+          objectToWorldMatrix: { type: "mat4", value: worldMatrix },
+        });
+        model.draw(gl);
       });
 
       gl.enable(gl.DEPTH_TEST);
