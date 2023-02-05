@@ -1,5 +1,5 @@
-import { Vec4 } from "./vec4";
-import { Vec3 } from "./vec3";
+import { Vec4 } from "../math/vec4";
+import { Vec3 } from "../math/vec3";
 
 export interface BoolUniform {
   type: "bool";

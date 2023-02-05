@@ -5,8 +5,8 @@ import {
   mat3Det,
   mat3Minor,
   mat3Sub,
-} from "../src/gl/mat3";
-import { mat2 } from "../src/gl/mat2";
+} from "../src/engine/math/mat3";
+import { mat2 } from "../src/engine/math/mat2";
 
 describe("mat3", () => {
   it("creates a submatrix", () => {

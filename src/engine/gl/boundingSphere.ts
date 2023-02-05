@@ -1,4 +1,4 @@
-import { vec3, Vec3, vec3Add, vec3Magnitude, vec3Sub } from "./vec3";
+import { vec3, Vec3, vec3Add, vec3Magnitude, vec3Sub } from "../math/vec3";
 
 export class BoundingSphere {
   center: Vec3;

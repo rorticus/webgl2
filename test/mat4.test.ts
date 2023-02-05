@@ -12,9 +12,9 @@ import {
   mat4Sub,
   mat4Translation,
   mat4Transpose,
-} from "../src/gl/mat4";
-import { mat3 } from "../src/gl/mat3";
-import { vec3 } from "../src/gl/vec3";
+} from "../src/engine/math/mat4";
+import { mat3 } from "../src/engine/math/mat3";
+import { vec3 } from "../src/engine/math/vec3";
 
 describe("mat4", () => {
   it("should initialize a matrix", () => {

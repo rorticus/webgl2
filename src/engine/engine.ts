@@ -7,18 +7,18 @@ import {
   mat4Mul,
   mat4Scale,
   mat4Translation,
-} from "../gl/mat4";
+} from "./math/mat4";
 import {
   LightComponent,
   Model2DComponent,
   ModelComponent,
   PositionComponent,
 } from "./components";
-import { Vec3, vec3 } from "../gl/vec3";
-import Material from "../gl/material";
-import accumVert from "../shaders/accum.vert";
-import accumFrag from "../shaders/accum.frag";
-import { Uniforms } from "../gl/unforms";
+import { Vec3, vec3 } from "./math/vec3";
+import Material from "./gl/material";
+import accumVert from "./shaders/accum.vert";
+import accumFrag from "./shaders/accum.frag";
+import { Uniforms } from "./gl/unforms";
 import {
   quat,
   quatMul,
@@ -26,17 +26,17 @@ import {
   quatRotationAboutY,
   quatRotationAboutZ,
   quatToMat4,
-} from "../gl/quat";
-import { BoundingSphere } from "../gl/boundingSphere";
+} from "./math/quat";
+import { BoundingSphere } from "./gl/boundingSphere";
 import { RenderParams } from "./types";
 import { LightRenderer } from "./lighting/lights";
 import { PointLightRenderer } from "./lighting/pointLight";
-import { FrameBuffer } from "../gl/framebuffer";
+import { FrameBuffer } from "./gl/framebuffer";
 import { DirectionalLightVariance } from "./lighting/directionalLightVariance";
-import { applyFilter } from "../gl/helpers";
+import { applyFilter } from "./gl/helpers";
 import { DirectionalLightNoShadows } from "./lighting/directionalLightNoShadows";
 import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
-import Model from "../gl/model";
+import Model from "./gl/model";
 
 function positionToMat4(
   dest: Mat4,

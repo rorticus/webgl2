@@ -1,18 +1,18 @@
 import { RenderParams } from "../types";
-import { Uniforms } from "../../gl/unforms";
+import { Uniforms } from "../gl/unforms";
 import { DirectionalLight } from "../lighting";
-import { mat4, mat4Inv, mat4LookAt, mat4Mul, mat4Ortho } from "../../gl/mat4";
-import { vec3, vec3Add, vec3DistanceTo, vec3Scale } from "../../gl/vec3";
-import Material from "../../gl/material";
+import { mat4, mat4Inv, mat4LookAt, mat4Mul, mat4Ortho } from "../math/mat4";
+import { vec3, vec3Add, vec3DistanceTo, vec3Scale } from "../math/vec3";
+import Material from "../gl/material";
 import shadowVertexShader from "./shaders/shadowdepth.vert";
 import shadowFragmentShader from "./shaders/shadow-variance-depth.frag";
-import { FrameBuffer } from "../../gl/framebuffer";
+import { FrameBuffer } from "../gl/framebuffer";
 import { DirectionalLightNoShadows } from "./directionalLightNoShadows";
 import dirLightVert from "./shaders/dirlight-pcf.vert";
 import dirLightFrag from "./shaders/dirlight-variance.frag";
 import blurVert from "./shaders/blur.vert";
 import blurFrag from "./shaders/blur.frag";
-import { applyFilter } from "../../gl/helpers";
+import { applyFilter } from "../gl/helpers";
 
 const shadowMaterial = new Material(shadowVertexShader, shadowFragmentShader);
 const dirLightMaterial = new Material(dirLightVert, dirLightFrag);

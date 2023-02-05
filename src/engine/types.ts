@@ -1,9 +1,9 @@
-import Model from "../gl/model";
-import { Vec3 } from "../gl/vec3";
-import { Mat4 } from "../gl/mat4";
+import Model from "./gl/model";
+import { Vec3 } from "./math/vec3";
+import { Mat4 } from "./math/mat4";
 import { Light } from "./lighting";
-import { BoundingSphere } from "../gl/boundingSphere";
-import { Camera } from "../gl/camera";
+import { BoundingSphere } from "./gl/boundingSphere";
+import { Camera } from "./gl/camera";
 
 export interface RenderParamsObj {
   position: Vec3;

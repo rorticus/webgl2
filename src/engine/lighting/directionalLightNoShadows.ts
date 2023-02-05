@@ -1,14 +1,14 @@
 import { LightRenderer } from "./lights";
 import { RenderParams, RenderParamsLight } from "../types";
-import Model from "../../gl/model";
-import { Uniforms } from "../../gl/unforms";
+import Model from "../gl/model";
+import { Uniforms } from "../gl/unforms";
 import { DirectionalLight } from "../lighting";
-import { mat4, mat4Mul } from "../../gl/mat4";
-import Material from "../../gl/material";
+import { mat4, mat4Mul } from "../math/mat4";
+import Material from "../gl/material";
 import dirLightVert from "./shaders/dirlight-pcf.vert";
 import dirLightFrag from "./shaders/dirlight-pcf.frag";
-import { createIcoSphere } from "../../gl/sphere";
-import { FrameBuffer } from "../../gl/framebuffer";
+import { createIcoSphere } from "../gl/sphere";
+import { FrameBuffer } from "../gl/framebuffer";
 
 const directionalLightMaterial = new Material(dirLightVert, dirLightFrag);
 

@@ -1,12 +1,12 @@
 import { LightGBuffer, LightRenderer } from "./lights";
 import { RenderParams, RenderParamsLight } from "../types";
-import { mat4, mat4Mul } from "../../gl/mat4";
-import { Uniforms } from "../../gl/unforms";
-import Model from "../../gl/model";
-import Material from "../../gl/material";
+import { mat4, mat4Mul } from "../math/mat4";
+import { Uniforms } from "../gl/unforms";
+import Model from "../gl/model";
+import Material from "../gl/material";
 import pointLightVert from "./shaders/pointlight.vert";
 import pointLightFrag from "./shaders/pointlight.frag";
-import { createIcoSphere } from "../../gl/sphere";
+import { createIcoSphere } from "../gl/sphere";
 
 const pointLightMaterial = new Material(pointLightVert, pointLightFrag);
 const icoSphere = createIcoSphere();

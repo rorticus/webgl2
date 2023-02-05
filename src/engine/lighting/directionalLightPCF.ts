@@ -1,12 +1,12 @@
 import { RenderParams } from "../types";
-import { Uniforms } from "../../gl/unforms";
+import { Uniforms } from "../gl/unforms";
 import { DirectionalLight } from "../lighting";
-import { mat4, mat4Inv, mat4LookAt, mat4Mul, mat4Ortho } from "../../gl/mat4";
-import { vec3, vec3Add, vec3DistanceTo, vec3Scale } from "../../gl/vec3";
-import Material from "../../gl/material";
+import { mat4, mat4Inv, mat4LookAt, mat4Mul, mat4Ortho } from "../math/mat4";
+import { vec3, vec3Add, vec3DistanceTo, vec3Scale } from "../math/vec3";
+import Material from "../gl/material";
 import shadowVertexShader from "./shaders/shadowdepth.vert";
 import shadowFragmentShader from "./shaders/shadowdepth.frag";
-import { FrameBuffer } from "../../gl/framebuffer";
+import { FrameBuffer } from "../gl/framebuffer";
 import { DirectionalLightNoShadows } from "./directionalLightNoShadows";
 
 const shadowMaterial = new Material(shadowVertexShader, shadowFragmentShader);

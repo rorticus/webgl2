@@ -1,5 +1,5 @@
 import { RenderParams, RenderParamsLight } from "../types";
-import { FrameBuffer } from "../../gl/framebuffer";
+import { FrameBuffer } from "../gl/framebuffer";
 
 export interface LightGBuffer {
   renderFrameBuffer: FrameBuffer;

@@ -1,4 +1,4 @@
-import { vec3, Vec3 } from "./vec3";
+import { vec3, Vec3 } from "../math/vec3";
 import Geometry from "./geometry";
 import { NormalBuffer, PositionBuffer } from "./buffers";
 import { BoundingSphere } from "./boundingSphere";

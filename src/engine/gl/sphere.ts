@@ -1,5 +1,5 @@
 import Geometry from "./geometry";
-import icoSphere from "../models/icosphere.obj";
+import icoSphere from "../../models/icosphere.obj";
 import { loadObj } from "./obj";
 
 /**

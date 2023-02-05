@@ -1,4 +1,4 @@
-import { vec3, vec3Dot } from "./vec3";
+import { vec3, vec3Dot } from "../math/vec3";
 
 export const DONT_INTERSECT = 0;
 export const COLLINEAR = 1;

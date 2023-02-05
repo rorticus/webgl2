@@ -1,5 +1,5 @@
 import { ResourcePool } from "./resources";
-import { Camera } from "../gl/camera";
+import { Camera } from "./gl/camera";
 import { EntityPool } from "./entities";
 import {
   LightComponent,
@@ -8,8 +8,8 @@ import {
   PositionComponent,
   ShapeComponent,
 } from "./components";
-import Model from "../gl/model";
-import { Vec3 } from "../gl/vec3";
+import Model from "./gl/model";
+import { Vec3 } from "./math/vec3";
 import { Light } from "./lighting";
 import { Shape } from "./types";
 

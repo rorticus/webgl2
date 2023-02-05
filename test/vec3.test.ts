@@ -9,7 +9,7 @@ import {
   vec3Normalize,
   vec3Scale,
   vec3Sub,
-} from "../src/gl/vec3";
+} from "../src/engine/math/vec3";
 
 describe("vec3", () => {
   it("adds vectors", () => {

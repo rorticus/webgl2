@@ -1,7 +1,7 @@
-import Material from "./gl/material";
-import Model from "./gl/model";
-import { vec3, vec3Normalize } from "./gl/vec3";
-import { loadMaterials, loadObj } from "./gl/obj";
+import Material from "./engine/gl/material";
+import Model from "./engine/gl/model";
+import { vec3, vec3Normalize } from "./engine/math/vec3";
+import { loadMaterials, loadObj } from "./engine/gl/obj";
 import objModel from "./models/scene.obj";
 import { mtl as objMats } from "./models/scene.mtl";
 import { Engine } from "./engine/engine";
@@ -11,9 +11,9 @@ import {
   ModelComponent,
   PositionComponent,
 } from "./engine/components";
-import gbufferVert from "./shaders/gbuffer.vert";
-import gbufferFrag from "./shaders/gbuffer.frag";
-import { drawWebglTexture } from "./gl/helpers";
+import gbufferVert from "./engine/shaders/gbuffer.vert";
+import gbufferFrag from "./engine/shaders/gbuffer.frag";
+import { drawWebglTexture } from "./engine/gl/helpers";
 import {
   createCircle,
   createPointShape,

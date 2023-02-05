@@ -1,4 +1,4 @@
-import { Vec3 } from "../gl/vec3";
+import { Vec3 } from "./math/vec3";
 
 export interface AnyLight {
   shadows?: boolean;

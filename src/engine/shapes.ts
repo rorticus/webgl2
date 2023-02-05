@@ -1,12 +1,12 @@
-import vert2d from "../shaders/2d.vert";
-import frag2d from "../shaders/2d.frag";
-import vert2dCircle from "../shaders/2dcircle.vert";
-import frag2dCircle from "../shaders/2dcircle.frag";
+import vert2d from "./shaders/2d.vert";
+import frag2d from "./shaders/2d.frag";
+import vert2dCircle from "./shaders/2dcircle.vert";
+import frag2dCircle from "./shaders/2dcircle.frag";
 
-import Material from "../gl/material";
-import Geometry from "../gl/geometry";
-import Model from "../gl/model";
-import { vec3, Vec3 } from "../gl/vec3";
+import Material from "./gl/material";
+import Geometry from "./gl/geometry";
+import Model from "./gl/model";
+import { vec3, Vec3 } from "./math/vec3";
 import {
   Model2DComponent,
   PositionComponent,
