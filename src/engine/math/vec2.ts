@@ -1,4 +1,5 @@
 export type Vec2 = Float32Array;
+export type Point2D = Vec2;
 
 export function vec2(x = 0, y = 0) {
   return new Float32Array([x, y]);
