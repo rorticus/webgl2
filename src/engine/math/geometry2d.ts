@@ -77,3 +77,5 @@ export function pointInOrientedRectangle(
 
   return pointInRectangle(localPoint, localRectangle);
 }
+
+export function lineCircle() {}
