@@ -17,6 +17,12 @@ export function vec2Sub(dest: Vec2, a: Vec2, b: Vec2) {
   return dest;
 }
 
+export function vec2Mul(dest: Vec2, a: Vec2, b: Vec2) {
+  dest[0] = a[0] * b[0];
+  dest[1] = a[1] * b[1];
+  return dest;
+}
+
 export function vec2Scale(dest: Vec2, a: Vec2, b: number) {
   dest[0] = a[0] * b;
   dest[1] = a[1] * b;

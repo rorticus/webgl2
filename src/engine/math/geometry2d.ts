@@ -1,4 +1,12 @@
-import { Point2D, vec2, vec2Add, vec2Scale, vec2Sub } from "./vec2";
+import {
+  Point2D,
+  vec2,
+  vec2Add,
+  vec2Dot,
+  vec2Mul,
+  vec2Scale,
+  vec2Sub,
+} from "./vec2";
 import { line2d, Line2D, line2dLengthSq } from "./line2d";
 import {
   rectangle2d,
@@ -78,4 +86,70 @@ export function pointInOrientedRectangle(
   return pointInRectangle(localPoint, localRectangle);
 }
 
-export function lineCircle() {}
+export function lineCircle(l: Line2D, c: Circle2D) {
+  const ab = vec2Sub(vec2(), l.end, l.start);
+  const t = vec2Dot(vec2Sub(vec2(), c.position, l.start), ab) / vec2Dot(ab, ab);
+
+  if (t < 0 || t > 1.0) {
+    return false;
+  }
+
+  const p = vec2Add(vec2(), l.start, vec2Scale(vec2(), ab, t));
+  const circleToClosest = line2d(c.position, p);
+
+  return line2dLengthSq(circleToClosest) < c.radius * c.radius;
+}
+
+export function lineRectangle(l: Line2D, r: Rectangle2D) {
+  if (pointInRectangle(l.start, r) || pointInRectangle(l.end, r)) {
+    return true;
+  }
+
+  const normal = vec2Sub(vec2(), l.end, l.start);
+  normal[0] = normal[0] != 0 ? 1 / normal[0] : 0;
+  normal[1] = normal[1] != 0 ? 1 / normal[1] : 0;
+
+  const min = vec2Mul(
+    vec2(),
+    vec2Sub(vec2(), rectangle2dMin(r), l.start),
+    normal
+  );
+  const max = vec2Mul(
+    vec2(),
+    vec2Sub(vec2(), rectangle2dMax(r), l.start),
+    normal
+  );
+
+  const tmin = Math.max(Math.min(min[0], max[0]), Math.min(min[1], max[1]));
+  const tmax = Math.min(Math.max(min[0], max[0]), Math.max(min[1], max[1]));
+
+  if (tmax < 0 || tmin > tmax) {
+    return false;
+  }
+
+  const t = tmin < 0 ? tmax : tmin;
+
+  return t > 0 && t * t < line2dLengthSq(l);
+}
+
+export function lineOrientedRectangle(l: Line2D, r: OrientedRectangle2D) {
+  const rotVector = vec2Sub(vec2(), l.start, r.position);
+  const theta = -deg2rad(r.rotation);
+
+  const rotatedX =
+    rotVector[0] * Math.cos(theta) - rotVector[1] * Math.sin(theta);
+  const rotatedY =
+    rotVector[0] * Math.sin(theta) + rotVector[1] * Math.cos(theta);
+
+  const localLine = line2d(
+    vec2(rotatedX, rotatedY),
+    vec2(rotatedX + l.end[0] - l.start[0], rotatedY + l.end[1] - l.start[1])
+  );
+
+  const localRectangle = rectangle2d(
+    vec2(),
+    vec2Scale(vec2(), r.halfExtents, 2)
+  );
+
+  return lineRectangle(localLine, localRectangle);
+}
