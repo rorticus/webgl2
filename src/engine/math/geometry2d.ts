@@ -15,7 +15,7 @@ import {
   rectangle2dMin,
 } from "./rectangle2d";
 import { OrientedRectangle2D } from "./oriententedRectangle2d";
-import { Circle2D } from "./circle2d";
+import { circle2d, Circle2D } from "./circle2d";
 
 function cmp(x: number, y: number) {
   return (
@@ -152,4 +152,62 @@ export function lineOrientedRectangle(l: Line2D, r: OrientedRectangle2D) {
   );
 
   return lineRectangle(localLine, localRectangle);
+}
+
+export function circleCircle(c1: Circle2D, c2: Circle2D) {
+  const line = line2d(c1.position, c2.position);
+  if (
+    line2dLengthSq(line) <
+    (c1.radius + c2.radius) * (c1.radius + c2.radius)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export function circleRectangle(c: Circle2D, r: Rectangle2D) {
+  const min = rectangle2dMin(r);
+  const max = rectangle2dMax(r);
+
+  const closestPoint = vec2(c.position[0], c.position[1]);
+  closestPoint[0] = Math.max(min[0], Math.min(max[0], closestPoint[0]));
+  closestPoint[1] = Math.max(min[1], Math.min(max[1], closestPoint[1]));
+
+  const line = line2d(c.position, closestPoint);
+
+  return line2dLengthSq(line) < c.radius * c.radius;
+}
+
+export function circleOrientedRectangle(c: Circle2D, r: OrientedRectangle2D) {
+  const rotVector = vec2Sub(vec2(), c.position, r.position);
+  const theta = -deg2rad(r.rotation);
+
+  const rotatedX =
+    rotVector[0] * Math.cos(theta) - rotVector[1] * Math.sin(theta);
+  const rotatedY =
+    rotVector[0] * Math.sin(theta) + rotVector[1] * Math.cos(theta);
+
+  const localCircle = circle2d(vec2(rotatedX, rotatedY), c.radius);
+  const localRectangle = rectangle2d(
+    vec2(),
+    vec2Scale(vec2(), r.halfExtents, 2)
+  );
+
+  return circleRectangle(localCircle, localRectangle);
+}
+
+export function rectangleRectangle(r1: Rectangle2D, r2: Rectangle2D) {
+  const min1 = rectangle2dMin(r1);
+  const max1 = rectangle2dMax(r1);
+
+  const min2 = rectangle2dMin(r2);
+  const max2 = rectangle2dMax(r2);
+
+  return (
+    min1[0] < max2[0] &&
+    max1[0] > min2[0] &&
+    min1[1] < max2[1] &&
+    max1[1] > min2[1]
+  );
 }
