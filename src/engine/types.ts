@@ -52,4 +52,9 @@ export interface Circle {
   radius: number;
 }
 
+export interface Interval2D {
+  min: number;
+  max: number;
+}
+
 export type Shape = Point | Line | Rect | Circle;

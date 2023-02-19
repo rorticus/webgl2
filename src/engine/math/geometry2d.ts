@@ -1,5 +1,6 @@
 import {
   Point2D,
+  Vec2,
   vec2,
   vec2Add,
   vec2Dot,
@@ -13,6 +14,7 @@ import {
   Rectangle2D,
   rectangle2dMax,
   rectangle2dMin,
+  rectangleInterval,
 } from "./rectangle2d";
 import { OrientedRectangle2D } from "./oriententedRectangle2d";
 import { circle2d, Circle2D } from "./circle2d";
@@ -210,4 +212,27 @@ export function rectangleRectangle(r1: Rectangle2D, r2: Rectangle2D) {
     min1[1] < max2[1] &&
     max1[1] > min2[1]
   );
+}
+
+export function overlapOnAxis(
+  rect1: Rectangle2D,
+  rect2: Rectangle2D,
+  axis: Vec2
+) {
+  const a = rectangleInterval(rect1, axis);
+  const b = rectangleInterval(rect2, axis);
+
+  return b.min <= a.max && a.min <= b.max;
+}
+
+export function rectangleRectangleSAT(r1: Rectangle2D, r2: Rectangle2D) {
+  const axes = [vec2(1, 0), vec2(0, 1)];
+
+  for (let i = 0; i < axes.length; i++) {
+    if (!overlapOnAxis(r1, r2, axes[i])) {
+      return false;
+    }
+  }
+
+  return true;
 }
