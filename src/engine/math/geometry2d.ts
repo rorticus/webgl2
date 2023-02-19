@@ -5,6 +5,7 @@ import {
   vec2Add,
   vec2Dot,
   vec2Mul,
+  vec2Normalize,
   vec2Scale,
   vec2Sub,
 } from "./vec2";
@@ -16,18 +17,19 @@ import {
   rectangle2dMin,
   rectangleInterval,
 } from "./rectangle2d";
-import { OrientedRectangle2D } from "./oriententedRectangle2d";
+import {
+  orientedRectangle2d,
+  OrientedRectangle2D,
+  orientedRectangleInterval,
+} from "./oriententedRectangle2d";
 import { circle2d, Circle2D } from "./circle2d";
+import { deg2rad } from "./angles";
 
 function cmp(x: number, y: number) {
   return (
     Math.abs(x - y) <
     Number.EPSILON * Math.max(1, Math.max(Math.abs(x), Math.abs(y)))
   );
-}
-
-function deg2rad(deg: number) {
-  return (deg * Math.PI) / 180;
 }
 
 export function pointOnLine(point: Point2D, line: Line2D): boolean {
@@ -214,7 +216,7 @@ export function rectangleRectangle(r1: Rectangle2D, r2: Rectangle2D) {
   );
 }
 
-export function overlapOnAxis(
+export function overlapOnAxisRectRect(
   rect1: Rectangle2D,
   rect2: Rectangle2D,
   axis: Vec2
@@ -229,10 +231,71 @@ export function rectangleRectangleSAT(r1: Rectangle2D, r2: Rectangle2D) {
   const axes = [vec2(1, 0), vec2(0, 1)];
 
   for (let i = 0; i < axes.length; i++) {
-    if (!overlapOnAxis(r1, r2, axes[i])) {
+    if (!overlapOnAxisRectRect(r1, r2, axes[i])) {
       return false;
     }
   }
 
   return true;
+}
+
+export function overlapOnAxisRectOrientedRect(
+  rect: Rectangle2D,
+  orientedRect: OrientedRectangle2D,
+  axis: Vec2
+) {
+  const a = rectangleInterval(rect, axis);
+  const b = orientedRectangleInterval(orientedRect, axis);
+
+  return b.min <= a.max && a.min <= b.max;
+}
+
+export function rectangleOrientedRectangle(
+  r1: Rectangle2D,
+  r2: OrientedRectangle2D
+) {
+  const axes = [vec2(1, 0), vec2(0, 1)];
+
+  const t = deg2rad(r2.rotation);
+  const cos = Math.cos(t);
+  const sin = Math.sin(t);
+
+  const axis = vec2(r2.halfExtents[0], 0);
+  vec2Normalize(axis, axis);
+  axes.push(vec2(axis[0] * cos - axis[1] * sin, axis[0] * sin + axis[1] * cos));
+
+  axis[0] = 0;
+  axis[1] = r2.halfExtents[1];
+  vec2Normalize(axis, axis);
+  axes.push(vec2(axis[0] * cos - axis[1] * sin, axis[0] * sin + axis[1] * cos));
+
+  for (let i = 0; i < axes.length; i++) {
+    if (!overlapOnAxisRectOrientedRect(r1, r2, axes[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function orientedRectangleOrientedRectangle(
+  r1: OrientedRectangle2D,
+  r2: OrientedRectangle2D
+) {
+  const local1 = rectangle2d(vec2(), vec2Scale(vec2(), r1.halfExtents, 2));
+  const r = vec2Sub(vec2(), r2.position, r1.position);
+  const local2 = orientedRectangle2d(r2.position, r2.halfExtents, r2.rotation);
+  local2.rotation = r2.rotation - r1.rotation;
+
+  const t = -deg2rad(r1.rotation);
+  const cos = Math.cos(t);
+  const sin = Math.sin(t);
+
+  vec2Add(
+    local2.position,
+    vec2(r[0] * cos - r[1] * sin, r[0] * sin + r[1] * cos),
+    r1.halfExtents
+  );
+
+  return rectangleOrientedRectangle(local1, local2);
 }
