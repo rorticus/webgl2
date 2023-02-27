@@ -42,6 +42,14 @@ export function vec2DistanceTo(a: Vec2, b: Vec2) {
   return Math.sqrt(x * x + y * y);
 }
 
+export function vec2DistanceToSq(a: Vec2, b: Vec2) {
+  const x = a[0] - b[0];
+  const y = a[1] - b[1];
+
+  return x * x + y * y;
+}
+
+
 export function vec2Dot(a: Vec2, b: Vec2) {
   return a[0] * b[0] + a[1] * b[1];
 }

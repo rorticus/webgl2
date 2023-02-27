@@ -3,6 +3,7 @@ import {
   Vec2,
   vec2,
   vec2Add,
+  vec2DistanceToSq,
   vec2Dot,
   vec2Mul,
   vec2Normalize,
@@ -15,6 +16,7 @@ import {
   Rectangle2D,
   rectangle2dMax,
   rectangle2dMin,
+  rectangleFromMinMax,
   rectangleInterval,
 } from "./rectangle2d";
 import {
@@ -298,4 +300,44 @@ export function orientedRectangleOrientedRectangle(
   );
 
   return rectangleOrientedRectangle(local1, local2);
+}
+
+export function containingCircle(points: Point2D[]): Circle2D {
+  const center = vec2();
+  for (let i = 0; i < points.length; i++) {
+    vec2Add(center, center, points[i]);
+  }
+  vec2Scale(center, center, 1 / points.length);
+
+  let radius = 0;
+  for (let i = 0; i < points.length; i++) {
+    const d = vec2DistanceToSq(points[i], center);
+    if (d > radius) {
+      radius = d;
+    }
+  }
+
+  return circle2d(center, Math.sqrt(radius));
+}
+
+export function containingRectangle(points: Point2D[]): Rectangle2D {
+  const min = vec2(points[0][0], points[0][1]);
+  const max = vec2(points[0][0], points[0][1]);
+
+  for (let i = 1; i < points.length; i++) {
+    if (points[i][0] < min[0]) {
+      min[0] = points[i][0];
+    }
+    if (points[i][1] < min[1]) {
+      min[1] = points[i][1];
+    }
+    if (points[i][0] > max[0]) {
+      max[0] = points[i][0];
+    }
+    if (points[i][1] > max[1]) {
+      max[1] = points[i][1];
+    }
+  }
+
+  return rectangleFromMinMax(min, max);
 }
