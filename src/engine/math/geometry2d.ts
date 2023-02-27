@@ -26,6 +26,7 @@ import {
 } from "./oriententedRectangle2d";
 import { circle2d, Circle2D } from "./circle2d";
 import { deg2rad } from "./angles";
+import { Shape2D } from "../types";
 
 function cmp(x: number, y: number) {
   return (
@@ -340,4 +341,79 @@ export function containingRectangle(points: Point2D[]): Rectangle2D {
   }
 
   return rectangleFromMinMax(min, max);
+}
+
+export function pointInShape(shape: Shape2D, point: Point2D) {
+  if (shape.circles.some((c) => pointInCircle(point, c))) {
+    return true;
+  }
+
+  if (shape.rectangles.some((r) => pointInRectangle(point, r))) {
+    return true;
+  }
+
+  return false;
+}
+
+export function shapeLine(shape: Shape2D, line: Line2D) {
+  if (shape.circles.some((c) => lineCircle(line, c))) {
+    return true;
+  }
+
+  if (shape.rectangles.some((r) => lineRectangle(line, r))) {
+    return true;
+  }
+
+  return false;
+}
+
+export function shapeCircle(shape: Shape2D, circle: Circle2D) {
+  if (shape.circles.some((c) => circleCircle(circle, c))) {
+    return true;
+  }
+
+  if (shape.rectangles.some((r) => circleRectangle(circle, r))) {
+    return true;
+  }
+
+  return false;
+}
+
+export function shapeRectangle(shape: Shape2D, rectangle: Rectangle2D) {
+  if (shape.circles.some((c) => circleRectangle(c, rectangle))) {
+    return true;
+  }
+
+  if (shape.rectangles.some((r) => rectangleRectangle(rectangle, r))) {
+    return true;
+  }
+
+  return false;
+}
+
+export function shapeOrientedRectangle(
+  shape: Shape2D,
+  rectangle: OrientedRectangle2D
+) {
+  if (shape.circles.some((c) => circleOrientedRectangle(c, rectangle))) {
+    return true;
+  }
+
+  if (shape.rectangles.some((r) => rectangleOrientedRectangle(r, rectangle))) {
+    return true;
+  }
+
+  return false;
+}
+
+export function shapeShape(s1: Shape2D, s2: Shape2D) {
+  if (s1.circles.some((c) => shapeCircle(s2, c))) {
+    return true;
+  }
+
+  if (s1.rectangles.some((r) => shapeRectangle(s2, r))) {
+    return true;
+  }
+
+  return false;
 }
