@@ -22,11 +22,11 @@ export class QuadTree<T = any> {
   currentDepth: number;
   nodeBounds: Rectangle2D;
 
-  constructor() {
+  constructor(bounds: Rectangle2D, depth = 0) {
     this.children = [];
     this.data = [];
-    this.currentDepth = 0;
-    this.nodeBounds = new Rectangle2D();
+    this.currentDepth = depth;
+    this.nodeBounds = bounds;
   }
 
   isLeaf() {
@@ -152,11 +152,7 @@ export class QuadTree<T = any> {
     ];
 
     for (let i = 0; i < childAreas.length; i++) {
-      const node = new QuadTree<T>();
-      node.nodeBounds = childAreas[i];
-      node.currentDepth = this.currentDepth + 1;
-
-      this.children.push(node);
+      this.children.push(new QuadTree<T>(childAreas[i], this.currentDepth + 1));
     }
 
     for (let i = 0; i < this.data.length; i++) {
