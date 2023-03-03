@@ -60,3 +60,19 @@ export function mat3Det(a: Mat3) {
     a[2] * mat3Cofactor(a, 0, 2)
   );
 }
+
+export function mat3Identity(dest: Mat3) {
+  dest[0] = 1;
+  dest[1] = 0;
+  dest[2] = 0;
+
+  dest[3] = 0;
+  dest[4] = 1;
+  dest[5] = 0;
+
+  dest[6] = 0;
+  dest[7] = 0;
+  dest[8] = 0;
+
+  return dest;
+}

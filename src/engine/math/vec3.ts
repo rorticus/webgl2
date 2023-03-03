@@ -1,4 +1,5 @@
 export type Vec3 = Float32Array;
+export type Point3D = Vec3;
 
 export function vec3(x = 0, y = 0, z = 0) {
   return new Float32Array([x, y, z]);
@@ -37,6 +38,13 @@ export function vec3DistanceTo(a: Vec3, b: Vec3) {
   const y = a[1] - b[1];
   const z = a[2] - b[2];
   return Math.sqrt(x * x + y * y + z * z);
+}
+
+export function vec3DistanceToSq(a: Vec3, b: Vec3) {
+  const x = a[0] - b[0];
+  const y = a[1] - b[1];
+  const z = a[2] - b[2];
+  return x * x + y * y + z * z;
 }
 
 export function vec3Dot(a: Vec3, b: Vec3) {
