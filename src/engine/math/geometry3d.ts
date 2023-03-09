@@ -7,6 +7,8 @@ import {
   vec3DistanceTo,
   vec3DistanceToSq,
   vec3Dot,
+  vec3Magnitude,
+  vec3MagnitudeSq,
   vec3Normalize,
   vec3Scale,
   vec3Sub,
@@ -484,4 +486,159 @@ export function obbPlane(obb: OBB, plane: Plane3D) {
   const dist = dot - plane.distance;
 
   return Math.abs(dist) <= len;
+}
+
+export function planePlane(a: Plane3D, b: Plane3D) {
+  const dot = vec3Cross(vec3(), a.normal, b.normal);
+
+  return cmp(vec3Dot(dot, dot), 0);
+}
+
+export function raycastSphere(ray: Ray3D, sphere: Sphere3D) {
+  const e = vec3Sub(vec3(), sphere.position, ray.origin);
+  const rSq = sphere.radius * sphere.radius;
+  const eSq = vec3MagnitudeSq(e);
+
+  const a = vec3Dot(e, ray.direction);
+  const bSq = eSq - a * a;
+  const f = Math.sqrt(rSq - bSq);
+
+  if (rSq - (eSq - a * a) < 0) {
+    return -1;
+  } else if (eSq < rSq) {
+    return a + f;
+  }
+
+  return a - f;
+}
+
+export function raycastAABB(ray: Ray3D, aabb: AABB) {
+  const min = aabbMin(aabb);
+  const max = aabbMax(aabb);
+
+  const t1 = (min[0] - ray.origin[0]) / ray.direction[0];
+  const t2 = (max[0] - ray.origin[0]) / ray.direction[0];
+  const t3 = (min[1] - ray.origin[1]) / ray.direction[1];
+  const t4 = (max[1] - ray.origin[1]) / ray.direction[1];
+  const t5 = (min[2] - ray.origin[2]) / ray.direction[2];
+  const t6 = (max[2] - ray.origin[2]) / ray.direction[2];
+
+  const tmin = Math.max(
+    Math.max(Math.min(t1, t2), Math.min(t3, t4)),
+    Math.min(t5, t6)
+  );
+  const tmax = Math.min(
+    Math.min(Math.min(t1, t2, Math.min(t3, t4)), Math.min(t5, t6))
+  );
+
+  if (tmax < 0) {
+    return -1;
+  }
+
+  if (tmin > tmax) {
+    return -1;
+  }
+
+  if (tmin < 0) {
+    return tmax;
+  }
+
+  return tmin;
+}
+
+export function raycastOBB(ray: Ray3D, obb: OBB) {
+  const x = vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]);
+  const y = vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]);
+  const z = vec3(obb.orientation[6], obb.orientation[7], obb.orientation[8]);
+
+  const p = vec3Sub(vec3(), obb.position, ray.origin);
+  const f = vec3(
+    vec3Dot(x, ray.direction),
+    vec3Dot(y, ray.direction),
+    vec3Dot(z, ray.direction)
+  );
+
+  const e = vec3(vec3Dot(x, p), vec3Dot(y, p), vec3Dot(z, p));
+
+  const t = [0, 0, 0, 0, 0, 0];
+  for (let i = 0; i < 3; i++) {
+    if (cmp(f[i], 0)) {
+      if (-e[i] - obb.size[i] > 0 || -e[i] + obb.size[i] < 0) {
+        return -1;
+      }
+      f[i] = 0.00001;
+    }
+
+    t[i * 2] = (e[i] + obb.size[i]) / f[i];
+    t[i * 2 + 1] = (e[i] - obb.size[i]) / f[i];
+  }
+
+  const tmin = Math.max(
+    Math.max(Math.min(t[0], t[1]), Math.min(t[2], t[3]), Math.min(t[4], t[5]))
+  );
+  const tmax = Math.min(
+    Math.min(Math.max(t[0], t[1], Math.max(t[2], t[3])), Math.max(t[4], t[5]))
+  );
+
+  if (tmax < 0) {
+    return -1;
+  }
+
+  if (tmin > tmax) {
+    return -1;
+  }
+
+  if (tmin < 0) {
+    return tmax;
+  }
+
+  return tmin;
+}
+
+export function raycastPlane(ray: Ray3D, plane: Plane3D) {
+  const nd = vec3Dot(ray.direction, plane.normal);
+  const pn = vec3Dot(ray.origin, plane.normal);
+
+  if (nd >= 0) {
+    return -1;
+  }
+
+  const t = (plane.distance - pn) / nd;
+
+  if (t >= 0) {
+    return t;
+  }
+
+  return -1;
+}
+
+export function lineTestSphere(line: Line3D, sphere: Sphere3D) {
+  const closest = closestPointLine(sphere.position, line);
+  const distSq = vec3MagnitudeSq(vec3Sub(vec3(), sphere.position, closest));
+
+  return distSq < sphere.radius * sphere.radius;
+}
+
+export function lineTestAABB(line: Line3D, aabb: AABB) {
+  const ray = ray3D(line.start, vec3Sub(vec3(), line.end, line.start));
+  const t = raycastAABB(ray, aabb);
+
+  return t >= 0 && t * t < line3DLengthSq(line);
+}
+
+export function lineTestOBB(line: Line3D, obb: OBB) {
+  const ray = ray3D(line.start, vec3Sub(vec3(), line.end, line.start));
+  const t = raycastOBB(ray, obb);
+
+  return t >= 0 && t * t < line3DLengthSq(line);
+}
+
+export function lineTestPlane(line: Line3D, plane: Plane3D) {
+  const ab = vec3Sub(vec3(), line.end, line.start);
+  const nA = vec3Dot(plane.normal, line.start);
+  const nAB = vec3Dot(plane.normal, ab);
+
+  const t = (plane.distance - nA) / nAB;
+
+  return t >= 0 && t <= 1;
 }

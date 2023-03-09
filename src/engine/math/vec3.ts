@@ -63,6 +63,10 @@ export function vec3Magnitude(a: Vec3) {
   return Math.sqrt(vec3Dot(a, a));
 }
 
+export function vec3MagnitudeSq(a: Vec3) {
+  return vec3Dot(a, a);
+}
+
 export function vec3Cross(dest: Vec3, a: Vec3, b: Vec3) {
   dest[0] = a[1] * b[2] - a[2] * b[1];
   dest[1] = a[2] * b[0] - a[0] * b[2];
