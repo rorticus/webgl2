@@ -14,7 +14,7 @@ import {
 import {
   AABB,
   Line3D,
-  OOB,
+  OBB,
   Plane3D,
   Ray3D,
   Sphere3D,
@@ -105,11 +105,11 @@ export function aabbFromMinMax(min: Point3D, max: Point3D) {
   );
 }
 
-export function oob(
+export function obb(
   position = vec3(),
   size = vec3(1, 1, 1),
   orientation = mat3Identity(mat3())
-): OOB {
+): OBB {
   return {
     position,
     size,
@@ -179,7 +179,7 @@ export function closestPointAABB(point: Point3D, aabb: AABB) {
   );
 }
 
-export function pointInOBB(point: Point3D, obb: OOB) {
+export function pointInOBB(point: Point3D, obb: OBB) {
   const dir = vec3Sub(vec3(), point, obb.position);
 
   for (let i = 0; i < 3; i++) {
@@ -198,7 +198,7 @@ export function pointInOBB(point: Point3D, obb: OOB) {
   return true;
 }
 
-export function closetPointOBB(point: Point3D, obb: OOB) {
+export function closetPointOBB(point: Point3D, obb: OBB) {
   const result = vec3(...obb.position);
   const dir = vec3Sub(vec3(), point, obb.position);
 
@@ -289,7 +289,7 @@ export function sphereAABB(sphere: Sphere3D, aabb: AABB) {
   return distance <= sphere.radius * sphere.radius;
 }
 
-export function sphereOOB(sphere: Sphere3D, obb: OOB) {
+export function sphereOBB(sphere: Sphere3D, obb: OBB) {
   const closest = closetPointOBB(sphere.position, obb);
   const distance = vec3DistanceToSq(sphere.position, closest);
 
@@ -353,7 +353,7 @@ export function getIntervalAABB(aabb: AABB, axis: Vec3): Interval3D {
   };
 }
 
-export function getIntervalOOB(obb: OOB, axis: Vec3) {
+export function getIntervalOBB(obb: OBB, axis: Vec3) {
   const c = obb.position;
   const e = obb.size;
   const A = [
@@ -392,21 +392,21 @@ export function getIntervalOOB(obb: OOB, axis: Vec3) {
   };
 }
 
-export function overlapOnAxis(aabb: AABB, oob: OOB, axis: Vec3) {
+export function overlapOnAxisAABBOBB(aabb: AABB, obb: OBB, axis: Vec3) {
   let a = getIntervalAABB(aabb, axis);
-  let b = getIntervalOOB(oob, axis);
+  let b = getIntervalOBB(obb, axis);
 
   return a.min <= b.max && b.min <= a.max;
 }
 
-export function aabbOOB(aabb: AABB, oob: OOB) {
+export function aabbOOB(aabb: AABB, obb: OBB) {
   const test = [
     vec3(1, 0, 0),
     vec3(0, 1, 0),
     vec3(0, 0, 1),
-    vec3(oob.orientation[0], oob.orientation[1], oob.orientation[2]),
-    vec3(oob.orientation[3], oob.orientation[4], oob.orientation[5]),
-    vec3(oob.orientation[6], oob.orientation[7], oob.orientation[8]),
+    vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]),
+    vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]),
+    vec3(obb.orientation[6], obb.orientation[7], obb.orientation[8]),
   ];
 
   for (let i = 0; i < 3; i++) {
@@ -416,7 +416,7 @@ export function aabbOOB(aabb: AABB, oob: OOB) {
   }
 
   for (let i = 0; i < test.length; i++) {
-    if (!overlapOnAxis(aabb, oob, test[i])) {
+    if (!overlapOnAxisAABBOBB(aabb, obb, test[i])) {
       return false;
     }
   }
@@ -431,6 +431,56 @@ export function aabbPlane(aabb: AABB, plane: Plane3D) {
     aabb.size[2] * Math.abs(plane.normal[2]);
 
   const dot = vec3Dot(plane.normal, aabb.origin);
+  const dist = dot - plane.distance;
+
+  return Math.abs(dist) <= len;
+}
+
+export function overlapOnAxisOBBOBB(a: OBB, b: OBB, axis: Vec3) {
+  let aInterval = getIntervalOBB(a, axis);
+  let bInterval = getIntervalOBB(b, axis);
+
+  return aInterval.min <= bInterval.max && bInterval.min <= aInterval.max;
+}
+
+export function obbOBB(obb1: OBB, obb2: OBB) {
+  const test = [
+    vec3(obb1.orientation[0], obb1.orientation[1], obb1.orientation[2]),
+    vec3(obb1.orientation[3], obb1.orientation[4], obb1.orientation[5]),
+    vec3(obb1.orientation[6], obb1.orientation[7], obb1.orientation[8]),
+    vec3(obb2.orientation[0], obb2.orientation[1], obb2.orientation[2]),
+    vec3(obb2.orientation[3], obb2.orientation[4], obb2.orientation[5]),
+    vec3(obb2.orientation[6], obb2.orientation[7], obb2.orientation[8]),
+  ];
+
+  for (let i = 0; i < 3; i++) {
+    test.push(vec3Cross(vec3(), test[i], test[0]));
+    test.push(vec3Cross(vec3(), test[i], test[1]));
+    test.push(vec3Cross(vec3(), test[i], test[2]));
+  }
+
+  for (let i = 0; i < test.length; i++) {
+    if (!overlapOnAxisOBBOBB(obb1, obb2, test[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function obbPlane(obb: OBB, plane: Plane3D) {
+  const rot = [
+    vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]),
+    vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]),
+    vec3(obb.orientation[6], obb.orientation[7], obb.orientation[8]),
+  ];
+
+  const len =
+    Math.abs(vec3Dot(rot[0], plane.normal)) * obb.size[0] +
+    Math.abs(vec3Dot(rot[1], plane.normal)) * obb.size[1] +
+    Math.abs(vec3Dot(rot[2], plane.normal)) * obb.size[2];
+
+  const dot = vec3Dot(plane.normal, obb.position);
   const dist = dot - plane.distance;
 
   return Math.abs(dist) <= len;

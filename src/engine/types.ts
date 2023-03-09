@@ -88,7 +88,7 @@ export interface AABB {
   size: Vec3;
 }
 
-export interface OOB {
+export interface OBB {
   position: Point3D;
   size: Vec3;
   orientation: Mat3;
