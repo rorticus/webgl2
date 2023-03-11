@@ -7,7 +7,6 @@ import {
   vec3DistanceTo,
   vec3DistanceToSq,
   vec3Dot,
-  vec3Magnitude,
   vec3MagnitudeSq,
   vec3Normalize,
   vec3Scale,
@@ -641,4 +640,248 @@ export function lineTestPlane(line: Line3D, plane: Plane3D) {
   const t = (plane.distance - nA) / nAB;
 
   return t >= 0 && t <= 1;
+}
+
+export function pointInTriangle(point: Point3D, triangle: Triangle3D) {
+  const a = vec3Sub(vec3(), point, triangle.a);
+  const b = vec3Sub(vec3(), point, triangle.b);
+  const c = vec3Sub(vec3(), point, triangle.c);
+
+  const normPBC = vec3Cross(vec3(), b, c);
+  const normPCA = vec3Cross(vec3(), c, a);
+  const normPAB = vec3Cross(vec3(), a, b);
+
+  if (vec3Dot(normPBC, normPCA) < 0) {
+    return false;
+  } else if (vec3Dot(normPBC, normPAB) < 0) {
+    return false;
+  }
+
+  return true;
+}
+
+export function planeFromTriangle(triangle: Triangle3D) {
+  const normal = vec3Cross(
+    vec3(),
+    vec3Sub(vec3(), triangle.b, triangle.a),
+    vec3Sub(vec3(), triangle.c, triangle.a)
+  );
+  const distance = vec3Dot(normal, triangle.a);
+
+  return plane3d(normal, distance);
+}
+
+export function triangleClosestPoint(triangle: Triangle3D, point: Point3D) {
+  const plane = planeFromTriangle(triangle);
+  const closest = closestPointPlane(point, plane);
+
+  if (pointInTriangle(closest, triangle)) {
+    return closest;
+  }
+
+  const c1 = closestPointLine(point, line3d(triangle.a, triangle.b));
+  const c2 = closestPointLine(point, line3d(triangle.b, triangle.c));
+  const c3 = closestPointLine(point, line3d(triangle.c, triangle.a));
+
+  const magSq1 = vec3MagnitudeSq(vec3Sub(vec3(), point, c1));
+  const magSq2 = vec3MagnitudeSq(vec3Sub(vec3(), point, c2));
+  const magSq3 = vec3MagnitudeSq(vec3Sub(vec3(), point, c3));
+
+  if (magSq1 < magSq2 && magSq1 < magSq3) {
+    return c1;
+  } else if (magSq2 < magSq1 && magSq2 < magSq3) {
+    return c2;
+  }
+
+  return c3;
+}
+
+export function triangleSphere(triangle: Triangle3D, sphere: Sphere3D) {
+  const closest = triangleClosestPoint(triangle, sphere.position);
+  const distSq = vec3MagnitudeSq(vec3Sub(vec3(), closest, sphere.position));
+
+  return distSq < sphere.radius * sphere.radius;
+}
+
+export function getIntervalTriangle(
+  triangle: Triangle3D,
+  axis: Vec3
+): Interval3D {
+  let min = vec3Dot(axis, triangle.a);
+  let max = min;
+
+  const b = vec3Dot(axis, triangle.b);
+  const c = vec3Dot(axis, triangle.c);
+
+  if (b < min) {
+    min = b;
+  } else if (b > max) {
+    max = b;
+  }
+
+  if (c < min) {
+    min = c;
+  } else if (c > max) {
+    max = c;
+  }
+
+  return {
+    min,
+    max,
+  };
+}
+
+export function overlapOnAxisAABBTriangle(
+  aabb: AABB,
+  triangle: Triangle3D,
+  axis: Vec3
+) {
+  const a = getIntervalAABB(aabb, axis);
+  const b = getIntervalTriangle(triangle, axis);
+
+  return a.min <= b.max && b.min <= a.max;
+}
+
+export function triangleAABB(triangle: Triangle3D, aabb: AABB) {
+  const f0 = vec3Sub(vec3(), triangle.b, triangle.a);
+  const f1 = vec3Sub(vec3(), triangle.c, triangle.a);
+  const f2 = vec3Sub(vec3(), triangle.c, triangle.b);
+
+  const u0 = vec3(1, 0, 0);
+  const u1 = vec3(0, 1, 0);
+  const u2 = vec3(0, 0, 1);
+
+  const axes = [
+    u0,
+    u1,
+    u2,
+    vec3Cross(vec3(), f0, f1),
+    vec3Cross(vec3(), u0, f0),
+    vec3Cross(vec3(), u0, f1),
+    vec3Cross(vec3(), u0, f2),
+    vec3Cross(vec3(), u1, f0),
+    vec3Cross(vec3(), u1, f1),
+    vec3Cross(vec3(), u1, f2),
+    vec3Cross(vec3(), u2, f0),
+    vec3Cross(vec3(), u2, f1),
+    vec3Cross(vec3(), u2, f2),
+  ];
+
+  for (let i = 0; i < axes.length; i++) {
+    if (!overlapOnAxisAABBTriangle(aabb, triangle, axes[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function overlapOnAxisTriangleOBB(
+  triangle: Triangle3D,
+  obb: OBB,
+  axis: Vec3
+) {
+  const a = getIntervalOBB(obb, axis);
+  const b = getIntervalTriangle(triangle, axis);
+
+  return a.min <= b.max && b.min <= a.max;
+}
+
+export function triangleOBB(triangle: Triangle3D, obb: OBB) {
+  const f0 = vec3Sub(vec3(), triangle.b, triangle.a);
+  const f1 = vec3Sub(vec3(), triangle.c, triangle.a);
+  const f2 = vec3Sub(vec3(), triangle.c, triangle.b);
+
+  const u0 = vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]);
+  const u1 = vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]);
+  const u2 = vec3(obb.orientation[6], obb.orientation[6], obb.orientation[7]);
+
+  const axes = [
+    u0,
+    u1,
+    u2,
+    vec3Cross(vec3(), f0, f1),
+    vec3Cross(vec3(), u0, f0),
+    vec3Cross(vec3(), u0, f1),
+    vec3Cross(vec3(), u0, f2),
+    vec3Cross(vec3(), u1, f0),
+    vec3Cross(vec3(), u1, f1),
+    vec3Cross(vec3(), u1, f2),
+    vec3Cross(vec3(), u2, f0),
+    vec3Cross(vec3(), u2, f1),
+    vec3Cross(vec3(), u2, f2),
+  ];
+
+  for (let i = 0; i < axes.length; i++) {
+    if (!overlapOnAxisTriangleOBB(triangle, obb, axes[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function trianglePlane(triangle: Triangle3D, plane: Plane3D) {
+  const side1 = plane3dEquation(plane, triangle.a);
+  const side2 = plane3dEquation(plane, triangle.b);
+  const side3 = plane3dEquation(plane, triangle.c);
+
+  if (cmp(side1, 0) && cmp(side2, 0) && cmp(side3, 0)) {
+    return true;
+  }
+
+  if (side1 > 0 && side2 > 0 && side3 > 0) {
+    return false;
+  }
+
+  if (side1 < 0 && side2 < 0 && side3 < 0) {
+    return false;
+  }
+
+  return true;
+}
+
+export function overlapOnAxisTriangleTriangle(
+  t1: Triangle3D,
+  t2: Triangle3D,
+  axis: Vec3
+) {
+  const a = getIntervalTriangle(t1, axis);
+  const b = getIntervalTriangle(t2, axis);
+
+  return a.min <= b.max && b.min <= a.max;
+}
+
+export function triangleTriangle(t1: Triangle3D, t2: Triangle3D) {
+  const t1_f0 = vec3Sub(vec3(), t1.b, t1.a);
+  const t1_f1 = vec3Sub(vec3(), t1.c, t1.b);
+  const t1_f2 = vec3Sub(vec3(), t1.a, t1.c);
+  const t2_f0 = vec3Sub(vec3(), t2.b, t2.a);
+  const t2_f1 = vec3Sub(vec3(), t2.c, t2.b);
+  const t2_f2 = vec3Sub(vec3(), t2.a, t2.c);
+
+  const axes = [
+    vec3Cross(vec3(), t1_f0, t1_f1),
+    vec3Cross(vec3(), t2_f0, t2_f1),
+
+    vec3Cross(vec3(), t2_f0, t1_f0),
+    vec3Cross(vec3(), t2_f0, t1_f1),
+    vec3Cross(vec3(), t2_f0, t1_f2),
+
+    vec3Cross(vec3(), t2_f1, t1_f0),
+    vec3Cross(vec3(), t2_f1, t1_f1),
+    vec3Cross(vec3(), t2_f1, t1_f2),
+
+    vec3Cross(vec3(), t2_f2, t1_f0),
+    vec3Cross(vec3(), t2_f2, t1_f1),
+    vec3Cross(vec3(), t2_f2, t1_f2),
+  ];
+
+  for (let i = 0; i < axes.length; i++) {
+    if (!overlapOnAxisTriangleTriangle(t1, t2, axes[i])) {
+      return false;
+    }
+  }
+
+  return true;
 }
