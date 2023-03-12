@@ -9,6 +9,7 @@ import {
   vec3Dot,
   vec3MagnitudeSq,
   vec3Normalize,
+  vec3Project,
   vec3Scale,
   vec3Sub,
 } from "./vec3";
@@ -885,3 +886,63 @@ export function triangleTriangle(t1: Triangle3D, t2: Triangle3D) {
 
   return true;
 }
+
+export function barycentric(point: Point3D, triangle: Triangle3D) {
+  const ap = vec3Sub(vec3(), point, triangle.a);
+  const bp = vec3Sub(vec3(), point, triangle.b);
+  const cp = vec3Sub(vec3(), point, triangle.c);
+
+  const ab = vec3Sub(vec3(), triangle.b, triangle.a);
+  const ac = vec3Sub(vec3(), triangle.c, triangle.a);
+  const bc = vec3Sub(vec3(), triangle.c, triangle.b);
+  const cb = vec3Sub(vec3(), triangle.b, triangle.c);
+  const ca = vec3Sub(vec3(), triangle.a, triangle.c);
+
+  let v = vec3Sub(vec3(), ab, vec3Project(vec3(), ab, cb));
+  const a = 1 - vec3Dot(v, ap) / vec3Dot(v, ab);
+
+  vec3Project(v, bc, ac);
+  const b = 1 - vec3Dot(v, bp) / vec3Dot(v, bc);
+
+  vec3Project(v, ca, ab);
+  const c = 1 - vec3Dot(v, cp) / vec3Dot(v, ca);
+
+  return vec3(a, b, c);
+}
+
+export function raycastTriangle(ray: Ray3D, triangle: Triangle3D) {
+  const plane = planeFromTriangle(triangle);
+  const t = raycastPlane(ray, plane);
+
+  if (t < 0) {
+    return t;
+  }
+
+  const result = vec3Add(
+    vec3(),
+    ray.origin,
+    vec3Scale(vec3(), ray.direction, t)
+  );
+  const bary = barycentric(result, triangle);
+
+  if (
+    bary[0] >= 0 &&
+    bary[0] <= 1 &&
+    bary[1] >= 0 &&
+    bary[1] <= 1 &&
+    bary[2] >= 0 &&
+    bary[2] <= 1
+  ) {
+    return t;
+  }
+
+  return -1;
+}
+
+export function lineTestTriangle(line: Line3D, triangle: Triangle3D) {
+  const ray = ray3D(line.start, vec3Sub(vec3(), line.end, line.start));
+  const t = raycastTriangle(ray, triangle);
+
+  return t >= 0 && t * t < line3DLengthSq(line);
+}
+

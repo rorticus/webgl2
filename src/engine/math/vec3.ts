@@ -74,3 +74,10 @@ export function vec3Cross(dest: Vec3, a: Vec3, b: Vec3) {
 
   return dest;
 }
+
+export function vec3Project(dest: Vec3, a: Vec3, b: Vec3) {
+  const dot = vec3Dot(a, b);
+  const magnitudeSq = vec3MagnitudeSq(b);
+
+  return vec3Scale(dest, b, dot / magnitudeSq);
+}
