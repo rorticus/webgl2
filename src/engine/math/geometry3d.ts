@@ -19,6 +19,7 @@ import {
   OBB,
   Plane3D,
   Ray3D,
+  RaycastResult,
   Sphere3D,
   Triangle3D,
 } from "../types";
@@ -494,7 +495,29 @@ export function planePlane(a: Plane3D, b: Plane3D) {
   return cmp(vec3Dot(dot, dot), 0);
 }
 
-export function raycastSphere(ray: Ray3D, sphere: Sphere3D) {
+export function raycastResult(): RaycastResult {
+  return {
+    point: vec3(),
+    normal: vec3(0, 0, 1),
+    hit: false,
+    t: -1,
+  };
+}
+
+export function resetRaycastResult(result: RaycastResult) {
+  result.point = vec3();
+  result.normal = vec3(0, 0, 1);
+  result.hit = false;
+  result.t = -1;
+}
+
+export function raycastSphere(
+  ray: Ray3D,
+  sphere: Sphere3D,
+  result: RaycastResult
+): boolean {
+  resetRaycastResult(result);
+
   const e = vec3Sub(vec3(), sphere.position, ray.origin);
   const rSq = sphere.radius * sphere.radius;
   const eSq = vec3MagnitudeSq(e);
@@ -502,17 +525,32 @@ export function raycastSphere(ray: Ray3D, sphere: Sphere3D) {
   const a = vec3Dot(e, ray.direction);
   const bSq = eSq - a * a;
   const f = Math.sqrt(rSq - bSq);
+  let t = a - f;
 
   if (rSq - (eSq - a * a) < 0) {
-    return -1;
+    return false;
   } else if (eSq < rSq) {
-    return a + f;
+    t = a + f;
   }
 
-  return a - f;
+  result.t = t;
+  result.hit = true;
+  vec3Add(result.point, ray.origin, vec3Scale(vec3(), ray.direction, t));
+  result.normal = vec3Normalize(
+    vec3(),
+    vec3Sub(vec3(), result.point, sphere.position)
+  );
+
+  return true;
 }
 
-export function raycastAABB(ray: Ray3D, aabb: AABB) {
+export function raycastAABB(
+  ray: Ray3D,
+  aabb: AABB,
+  result: RaycastResult
+): boolean {
+  resetRaycastResult(result);
+
   const min = aabbMin(aabb);
   const max = aabbMax(aabb);
 
@@ -532,21 +570,58 @@ export function raycastAABB(ray: Ray3D, aabb: AABB) {
   );
 
   if (tmax < 0) {
-    return -1;
+    return false;
   }
 
   if (tmin > tmax) {
-    return -1;
+    return false;
   }
+
+  let t_result = tmin;
 
   if (tmin < 0) {
-    return tmax;
+    t_result = tmax;
   }
 
-  return tmin;
+  const normals = [
+    vec3(-1, 0, 0),
+    vec3(1, 0, 0),
+    vec3(0, -1, 0),
+    vec3(0, 1, 0),
+    vec3(0, 0, -1),
+    vec3(0, 0, 1),
+  ];
+
+  result.t = t_result;
+  result.hit = true;
+  vec3Add(result.point, ray.origin, vec3Scale(vec3(), ray.direction, t_result));
+
+  if (cmp(t_result, t1)) {
+    result.normal = normals[0];
+  } else if (cmp(t_result, t2)) {
+    result.normal = normals[1];
+  } else if (cmp(t_result, t3)) {
+    result.normal = normals[2];
+  } else if (cmp(t_result, t4)) {
+    result.normal = normals[3];
+  } else if (cmp(t_result, t5)) {
+    result.normal = normals[4];
+  } else if (cmp(t_result, t6)) {
+    result.normal = normals[5];
+  } else {
+    result.normal = vec3(0, 0, 1);
+  }
+
+  return true;
 }
 
-export function raycastOBB(ray: Ray3D, obb: OBB) {
+export function raycastOBB(
+  ray: Ray3D,
+  obb: OBB,
+  result: RaycastResult
+): boolean {
+  resetRaycastResult(result);
+
   const x = vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]);
   const y = vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]);
   const z = vec3(obb.orientation[6], obb.orientation[7], obb.orientation[8]);
@@ -564,7 +639,7 @@ export function raycastOBB(ray: Ray3D, obb: OBB) {
   for (let i = 0; i < 3; i++) {
     if (cmp(f[i], 0)) {
       if (-e[i] - obb.size[i] > 0 || -e[i] + obb.size[i] < 0) {
-        return -1;
+        return false;
       }
       f[i] = 0.00001;
     }
@@ -581,35 +656,66 @@ export function raycastOBB(ray: Ray3D, obb: OBB) {
   );
 
   if (tmax < 0) {
-    return -1;
+    return false;
   }
 
   if (tmin > tmax) {
-    return -1;
+    return false;
   }
+
+  let t_result = tmin;
 
   if (tmin < 0) {
-    return tmax;
+    t_result = tmax;
   }
 
-  return tmin;
+  result.hit = true;
+  result.t = t_result;
+  vec3Add(result.point, ray.origin, vec3Scale(vec3(), ray.direction, t_result));
+
+  const normals = [
+    x,
+    vec3Scale(vec3(), x, -1),
+    y,
+    vec3Scale(vec3(), y, -1),
+    z,
+    vec3Scale(vec3(), z, -1),
+  ];
+
+  for (let i = 0; i < 6; i++) {
+    if (cmp(t_result, t[i])) {
+      result.normal = normals[i];
+      break;
+    }
+  }
+
+  return true;
 }
 
-export function raycastPlane(ray: Ray3D, plane: Plane3D) {
+export function raycastPlane(
+  ray: Ray3D,
+  plane: Plane3D,
+  result: RaycastResult
+): boolean {
+  resetRaycastResult(result);
+
   const nd = vec3Dot(ray.direction, plane.normal);
   const pn = vec3Dot(ray.origin, plane.normal);
 
   if (nd >= 0) {
-    return -1;
+    return false;
   }
 
   const t = (plane.distance - pn) / nd;
 
   if (t >= 0) {
-    return t;
+    result.t = t;
+    result.hit = true;
+    vec3Add(result.point, ray.origin, vec3Scale(vec3(), ray.direction, t));
+    result.normal = plane.normal;
   }
 
-  return -1;
+  return false;
 }
 
 export function lineTestSphere(line: Line3D, sphere: Sphere3D) {
@@ -621,16 +727,23 @@ export function lineTestSphere(line: Line3D, sphere: Sphere3D) {
 
 export function lineTestAABB(line: Line3D, aabb: AABB) {
   const ray = ray3D(line.start, vec3Sub(vec3(), line.end, line.start));
-  const t = raycastAABB(ray, aabb);
+  const result = raycastResult();
 
-  return t >= 0 && t * t < line3DLengthSq(line);
+  if (!raycastAABB(ray, aabb, result)) {
+    return false;
+  }
+
+  return result.t > 0 && result.t * result.t < line3DLengthSq(line);
 }
 
 export function lineTestOBB(line: Line3D, obb: OBB) {
   const ray = ray3D(line.start, vec3Sub(vec3(), line.end, line.start));
-  const t = raycastOBB(ray, obb);
+  const result = raycastResult();
+  if (!raycastOBB(ray, obb, result)) {
+    return false;
+  }
 
-  return t >= 0 && t * t < line3DLengthSq(line);
+  return result.t >= 0 && result.t * result.t < line3DLengthSq(line);
 }
 
 export function lineTestPlane(line: Line3D, plane: Plane3D) {
@@ -910,20 +1023,26 @@ export function barycentric(point: Point3D, triangle: Triangle3D) {
   return vec3(a, b, c);
 }
 
-export function raycastTriangle(ray: Ray3D, triangle: Triangle3D) {
-  const plane = planeFromTriangle(triangle);
-  const t = raycastPlane(ray, plane);
+export function raycastTriangle(
+  ray: Ray3D,
+  triangle: Triangle3D,
+  result: RaycastResult
+): boolean {
+  resetRaycastResult(result);
 
-  if (t < 0) {
-    return t;
+  const plane = planeFromTriangle(triangle);
+  const planeResult = raycastResult();
+
+  if (!raycastPlane(ray, plane, planeResult)) {
+    return false;
   }
 
-  const result = vec3Add(
+  const point = vec3Add(
     vec3(),
     ray.origin,
-    vec3Scale(vec3(), ray.direction, t)
+    vec3Scale(vec3(), ray.direction, planeResult.t)
   );
-  const bary = barycentric(result, triangle);
+  const bary = barycentric(point, triangle);
 
   if (
     bary[0] >= 0 &&
@@ -933,16 +1052,22 @@ export function raycastTriangle(ray: Ray3D, triangle: Triangle3D) {
     bary[2] >= 0 &&
     bary[2] <= 1
   ) {
-    return t;
+    result.hit = true;
+    result.t = planeResult.t;
+    result.point = point;
+    result.normal = plane.normal;
   }
 
-  return -1;
+  return false;
 }
 
 export function lineTestTriangle(line: Line3D, triangle: Triangle3D) {
   const ray = ray3D(line.start, vec3Sub(vec3(), line.end, line.start));
-  const t = raycastTriangle(ray, triangle);
+  const result = raycastResult();
 
-  return t >= 0 && t * t < line3DLengthSq(line);
+  if (!raycastTriangle(ray, triangle, result)) {
+    return false;
+  }
+
+  return result.t >= 0 && result.t * result.t < line3DLengthSq(line);
 }
-

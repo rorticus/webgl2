@@ -104,3 +104,10 @@ export interface Triangle3D {
   b: Point3D;
   c: Point3D;
 }
+
+export interface RaycastResult {
+  point: Vec3;
+  normal: Vec3;
+  t: number;
+  hit: boolean;
+}
