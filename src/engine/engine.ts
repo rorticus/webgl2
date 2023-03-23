@@ -1,4 +1,4 @@
-import { Scene } from "./scene";
+import { BaseScene, Scene } from "./scene";
 import {
   mat4,
   Mat4,
@@ -36,7 +36,6 @@ import { DirectionalLightVariance } from "./lighting/directionalLightVariance";
 import { applyFilter } from "./gl/helpers";
 import { DirectionalLightNoShadows } from "./lighting/directionalLightNoShadows";
 import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
-import Model from "./gl/model";
 
 function positionToMat4(
   dest: Mat4,
@@ -63,7 +62,7 @@ function positionToMat4(
 }
 
 export class Engine {
-  root?: Scene<any, any>;
+  root?: BaseScene;
   canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
   lastTime: number = 0;
@@ -151,12 +150,12 @@ export class Engine {
 
       const gl = this.gl;
 
-      const modelsInFrustum = this.root?.entities.getEntities(ModelComponent)!;
-      const lights = this.root?.entities.getEntities(LightComponent)!;
+      const modelsInFrustum = this.root?.entities.withComponents(ModelComponent, PositionComponent)!;
+      const lights = this.root?.entities.withComponents(LightComponent)!;
 
       const renderParamModels = modelsInFrustum.map((entity) => {
-        const m = this.root?.entities.getComponent(entity, ModelComponent)!;
-        const p = this.root?.entities.getComponent(entity, PositionComponent)!;
+        const m = entity.component(ModelComponent);
+        const p = entity.component(PositionComponent);
 
         const position = p?.position ?? vec3(0, 0, 0);
         const orientation = p?.orientation ?? vec3(0, 0, 0);
@@ -177,8 +176,8 @@ export class Engine {
       });
 
       const renderParamsLights = lights.map((entity) => {
-        const l = this.root?.entities.getComponent(entity, LightComponent)!;
-        const p = this.root?.entities.getComponent(entity, PositionComponent)!;
+        const l = entity.component(LightComponent);
+        const p = entity.component(PositionComponent);
 
         const position = p?.position ?? vec3(0, 0, 0);
         const orientation = p?.orientation ?? vec3(0, 0, 0);
@@ -206,7 +205,7 @@ export class Engine {
           renderParamModels
             .filter((m) => !!m.model?.geometry?.boundingSphere)
             .map((m) =>
-              m.model.geometry.boundingSphere.movedAndScaled(
+              m.model.geometry.boundingSphere!.movedAndScaled(
                 m.position,
                 m.scale
               )
@@ -235,8 +234,8 @@ export class Engine {
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.CULL_FACE);
 
-      this.root?.entities.getEntities(Model2DComponent)?.forEach((entity) => {
-        const p = this.root?.entities.getComponent(entity, PositionComponent)!;
+      this.root?.entities.withComponents(Model2DComponent)?.forEach((entity) => {
+        const p = entity.component(PositionComponent);
 
         const position = p?.position ?? vec3(0, 0, 0);
         const orientation = p?.orientation ?? vec3(0, 0, 0);
@@ -248,10 +247,8 @@ export class Engine {
           scale
         );
 
-        const model: Model = this.root?.entities.getComponent(
-          entity,
-          Model2DComponent
-        )!;
+        const model = entity.component(Model2DComponent);
+
         model.prepare(gl, {
           objectToWorldMatrix: { type: "mat4", value: worldMatrix },
         });

@@ -39,7 +39,7 @@ const model = new Model(modelGeometry, material);
 
 const modelOrientation = vec3(0, 0, 0);
 
-scene.entities.addEntity({
+scene.entities.add({
   [ModelComponent]: model,
   [PositionComponent]: {
     position: vec3(0, 0, 0),
@@ -48,7 +48,7 @@ scene.entities.addEntity({
   },
 });
 
-scene.entities.addEntity({
+scene.entities.add({
   [LightComponent]: {
     type: "directional",
     color: vec3(1, 1, 1),
@@ -63,9 +63,9 @@ scene.entities.addEntity({
   },
 });
 
-scene.entities.addEntity(createPointShape(-0.25, 0.25, 5, vec3(1, 1, 1)));
-scene.entities.addEntity(createRectangle(0.25, 0.25, 0.1, 0.1, vec3(1, 0, 0)));
-scene.entities.addEntity(createCircle(-0.25, -0.25, 0.2, vec3(0, 1, 0)));
+scene.entities.add(createPointShape(-0.25, 0.25, 5, vec3(1, 1, 1)));
+scene.entities.add(createRectangle(0.25, 0.25, 0.1, 0.1, vec3(1, 0, 0)));
+scene.entities.add(createCircle(-0.25, -0.25, 0.2, vec3(0, 1, 0)));
 
 // scene.entities.addEntity({
 //   [LightComponent]: {

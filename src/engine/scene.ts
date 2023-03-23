@@ -5,15 +5,16 @@ import {
   LightComponent,
   Model2DComponent,
   ModelComponent,
-  PositionComponent,
-  ShapeComponent,
+  PositionComponent, RigidBodyComponent,
+  ShapeComponent
 } from "./components";
 import Model from "./gl/model";
 import { Vec3 } from "./math/vec3";
 import { Light } from "./lighting";
 import { Shape } from "./types";
+import { RigidBody } from "./physics/physics";
 
-interface BaseSceneComponents {
+export interface BaseSceneComponents {
   [ModelComponent]: Model;
   [PositionComponent]: {
     position: Vec3;
@@ -24,9 +25,13 @@ interface BaseSceneComponents {
   [LightComponent]: Light;
   [Model2DComponent]: Model;
   [ShapeComponent]: Shape;
+
+  [RigidBodyComponent]: RigidBody;
 }
 
-interface BaseSceneResources {}
+export interface BaseSceneResources {}
+
+export type BaseScene = Scene<BaseSceneResources, BaseSceneComponents>;
 
 export type System<
   R extends BaseSceneResources,

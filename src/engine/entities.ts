@@ -1,11 +1,30 @@
-export type Entity = symbol;
+import { ArrayToKeys } from "./types";
+
+export type Entity = number;
 export type Component = symbol | string;
+
+type ComponentProps<T = {}> = {
+  [key in keyof T]: T[key];
+};
 
 export type PartialComponents<T> = { [key in keyof T]?: T[key] };
 
-export class EntityPool<T = {}> {
+type AnyProps<U> = { [key in keyof U]?: any };
+
+/*
+
+OptionalExcept<T, U>
+
+ */
+
+type EntityWithComponents<T extends ComponentProps<T>, C extends AnyProps<T>> = {
+  entity: Entity;
+  component<K extends keyof T>(c: K): K extends keyof C ? T[K] : T[K] | undefined;
+};
+
+export class EntityPool<T extends ComponentProps = {}> {
   entityToComponentMap: {
-    [key: Entity]: Set<keyof T>;
+    [key: Entity | string]: Set<keyof T>;
   } = {};
   componentToEntityMap: {
     [key in keyof T]?: {
@@ -13,17 +32,22 @@ export class EntityPool<T = {}> {
     };
   } = {};
 
-  addEntity(components: PartialComponents<T>) {
-    const entity = Symbol();
+  private id = 1;
 
-    this.entityToComponentMap[entity] = new Set();
-    this.addComponents(entity, components);
-
-    return entity;
+  private makeEntityWithComponents<U extends AnyProps<T>>(
+    entity: Entity
+  ): EntityWithComponents<T, U> {
+    return {
+      entity,
+      component: (c: keyof T) => this.componentToEntityMap[c]?.[entity] as any,
+    };
   }
 
-  addComponents(entity: Entity, components: PartialComponents<T>) {
-    const keys = Object.getOwnPropertySymbols(components) as (keyof T)[];
+  private addComponents(entity: Entity, components: PartialComponents<T>) {
+    const keys = [
+      ...Object.keys(components),
+      ...Object.getOwnPropertySymbols(components),
+    ] as (keyof T)[];
 
     keys.forEach((component) => {
       if (!this.componentToEntityMap[component]) {
@@ -41,16 +65,22 @@ export class EntityPool<T = {}> {
     );
   }
 
-  getEntities(component: keyof T): Entity[] {
-    return Object.getOwnPropertySymbols(
-      this.componentToEntityMap[component] || {}
-    );
+  add(components: PartialComponents<T>) {
+    const entity = this.id++;
+
+    this.entityToComponentMap[entity] = new Set();
+    this.addComponents(entity, components);
+
+    return this.makeEntityWithComponents<typeof components>(entity);
   }
 
-  getComponent(
-    entity: Entity,
-    component: keyof T
-  ): T[typeof component] | undefined {
-    return this.componentToEntityMap[component]?.[entity];
+  withComponents<U extends [...(keyof T)[]]>(...components: [...U]): EntityWithComponents<T, ArrayToKeys<T, U>>[] {
+    return Object.keys(this.entityToComponentMap)
+      .filter((entity) =>
+        components.every((component) =>
+          this.entityToComponentMap[entity].has(component)
+        )
+      )
+      .map((e) => this.makeEntityWithComponents(parseInt(e, 10)));
   }
 }

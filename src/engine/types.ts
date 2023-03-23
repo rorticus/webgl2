@@ -8,6 +8,14 @@ import { Circle2D } from "./math/circle2d";
 import { Rectangle2D } from "./math/rectangle2d";
 import { Mat3 } from "./math/mat3";
 
+export type ArrayToKeys<O, T extends (keyof O)[]> = {
+  [K in T[number]]: O[K];
+};
+
+export type OptionalExcept<T, U extends (keyof T)[]> = {
+  [K in keyof T]: K extends keyof ArrayToKeys<T, U> ? T[K] : (T[K] | undefined);
+}
+
 export interface RenderParamsObj {
   position: Vec3;
   orientation: Vec3;
