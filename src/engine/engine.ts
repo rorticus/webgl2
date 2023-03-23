@@ -1,4 +1,4 @@
-import { BaseScene, Scene } from "./scene";
+import { BaseScene } from "./scene";
 import {
   mat4,
   Mat4,
@@ -36,6 +36,7 @@ import { DirectionalLightVariance } from "./lighting/directionalLightVariance";
 import { applyFilter } from "./gl/helpers";
 import { DirectionalLightNoShadows } from "./lighting/directionalLightNoShadows";
 import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
+import { PhysicsSolverSystem } from "./physics/physicssolver.system";
 
 function positionToMat4(
   dest: Mat4,
@@ -61,13 +62,14 @@ function positionToMat4(
   return dest;
 }
 
-export class Engine {
-  root?: BaseScene;
+export class Engine<T extends BaseScene> {
+  root?: T;
   canvas: HTMLCanvasElement;
   readonly gl: WebGL2RenderingContext;
   lastTime: number = 0;
   elapsed = 0;
   lightRenderers: Record<string, LightRenderer> = {};
+  systems: T["systems"] = [];
 
   // gbuffer
   renderFrameBuffer: FrameBuffer;
@@ -80,6 +82,8 @@ export class Engine {
     const gl = canvas.getContext("webgl2")!;
 
     this.gl = gl;
+
+    this.systems = [PhysicsSolverSystem];
 
     this.renderFrameBuffer = new FrameBuffer(
       gl,
@@ -146,11 +150,18 @@ export class Engine {
       this.lastTime = now;
       this.elapsed += dt;
 
+      // run engine systems
+      this.systems.forEach((system) => system(this.root!, dt));
+
+      // run scene systems
       this.root?.systems.forEach((system) => system(this.root!, dt));
 
       const gl = this.gl;
 
-      const modelsInFrustum = this.root?.entities.withComponents(ModelComponent, PositionComponent)!;
+      const modelsInFrustum = this.root?.entities.withComponents(
+        ModelComponent,
+        PositionComponent
+      )!;
       const lights = this.root?.entities.withComponents(LightComponent)!;
 
       const renderParamModels = modelsInFrustum.map((entity) => {
@@ -234,26 +245,28 @@ export class Engine {
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.CULL_FACE);
 
-      this.root?.entities.withComponents(Model2DComponent)?.forEach((entity) => {
-        const p = entity.component(PositionComponent);
+      this.root?.entities
+        .withComponents(Model2DComponent)
+        ?.forEach((entity) => {
+          const p = entity.component(PositionComponent);
 
-        const position = p?.position ?? vec3(0, 0, 0);
-        const orientation = p?.orientation ?? vec3(0, 0, 0);
-        const scale = p?.scale ?? 1;
-        const worldMatrix = positionToMat4(
-          mat4(),
-          position,
-          orientation,
-          scale
-        );
+          const position = p?.position ?? vec3(0, 0, 0);
+          const orientation = p?.orientation ?? vec3(0, 0, 0);
+          const scale = p?.scale ?? 1;
+          const worldMatrix = positionToMat4(
+            mat4(),
+            position,
+            orientation,
+            scale
+          );
 
-        const model = entity.component(Model2DComponent);
+          const model = entity.component(Model2DComponent);
 
-        model.prepare(gl, {
-          objectToWorldMatrix: { type: "mat4", value: worldMatrix },
+          model.prepare(gl, {
+            objectToWorldMatrix: { type: "mat4", value: worldMatrix },
+          });
+          model.draw(gl);
         });
-        model.draw(gl);
-      });
 
       gl.enable(gl.DEPTH_TEST);
       gl.enable(gl.CULL_FACE);
@@ -270,7 +283,7 @@ export class Engine {
     this.lightingFrameBuffer.resize(this.gl);
   }
 
-  setRootScene(scene: Scene<any, any>) {
+  setRootScene(scene: T) {
     this.root = scene;
     this.root.camera.resize(
       this.gl.drawingBufferWidth,

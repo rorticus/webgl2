@@ -45,7 +45,7 @@ scene.entities.add({
     position: vec3(0, 0, 0),
     orientation: modelOrientation,
     scale: 1,
-  },
+  }
 });
 
 scene.entities.add({
