@@ -2,6 +2,7 @@ import { ResourcePool } from "./resources";
 import { Camera } from "./gl/camera";
 import { EntityPool } from "./entities";
 import {
+  ConstraintComponent,
   LightComponent,
   Model2DComponent,
   ModelComponent,
@@ -11,7 +12,7 @@ import {
 import Model from "./gl/model";
 import { Vec3 } from "./math/vec3";
 import { Light } from "./lighting";
-import { Shape } from "./types";
+import { OBB, Shape } from "./types";
 import { RigidBody } from "./physics/physics";
 
 export interface BaseSceneComponents {
@@ -27,6 +28,7 @@ export interface BaseSceneComponents {
   [ShapeComponent]: Shape;
 
   [RigidBodyComponent]: RigidBody;
+  [ConstraintComponent]: OBB;
 }
 
 export interface BaseSceneResources {}

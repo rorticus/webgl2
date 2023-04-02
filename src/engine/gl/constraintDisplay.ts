@@ -1,0 +1,77 @@
+import Geometry from "./geometry";
+import Model from "./model";
+import constraintVertex from "../shaders/constraint.vert";
+import constraintFragment from "../shaders/constraint.frag";
+import Material from "./material";
+import { OBB } from "../types";
+import {
+  mat4,
+  Mat4,
+  mat4Identity, mat4Inv, mat4Mul, mat4RotationX, mat4Scale, mat4Translation
+} from "../math/mat4";
+import { vec3 } from "../math/vec3";
+
+const constraintMaterial = new Material(constraintVertex, constraintFragment);
+
+const geo = new Geometry(
+  {
+    position: {
+      type: "vec3",
+      data: new Float32Array([
+        // Front face
+        -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5,
+
+        // Back face
+        -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5, -0.5,
+
+        // Top face
+        -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, -0.5,
+
+        // Bottom face
+        -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5,
+
+        // Right face
+        0.5, -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5,
+
+        // Left face
+        -0.5, -0.5, -0.5, -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5, -0.5,
+      ]),
+    },
+  },
+  [
+    {
+      indices: new Uint16Array([
+        0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 8, 9, 9, 10, 10, 11, 11,
+        8, 12, 13, 13, 14, 14, 15, 15, 12, 16, 17, 17, 18, 18, 19, 19, 16, 20,
+        21, 21, 22, 22, 23, 23, 20,
+      ]),
+      uniforms: {
+        color: { type: "vec3", value: vec3(1, 1, 0) },
+      },
+    },
+  ]
+);
+
+geo.drawType = WebGL2RenderingContext.LINES;
+
+const obbConstraintModel = new Model(geo, constraintMaterial);
+
+export function drawOBB(gl: WebGL2RenderingContext, worldToViewMatrix: Mat4, projectionMatrix: Mat4, obb: OBB) {
+  const worldMatrix = mat4();
+  mat4Identity(worldMatrix);
+
+  const translate = mat4Translation(mat4(), obb.position);
+  const s = mat4Scale(mat4(), obb.size);
+
+  mat4Mul(worldMatrix, worldMatrix, s);
+  mat4Mul(worldMatrix, worldMatrix, translate);
+
+  mat4Mul(worldMatrix, worldMatrix, worldToViewMatrix);
+
+  obbConstraintModel.prepare(gl, {
+    world: { type: "mat4", value: worldMatrix },
+    projection: { type: "mat4", value: projectionMatrix },
+  });
+
+  obbConstraintModel.draw(gl);
+}

@@ -9,6 +9,7 @@ import {
   mat4Translation,
 } from "./math/mat4";
 import {
+  ConstraintComponent,
   LightComponent,
   Model2DComponent,
   ModelComponent,
@@ -37,6 +38,7 @@ import { applyFilter } from "./gl/helpers";
 import { DirectionalLightNoShadows } from "./lighting/directionalLightNoShadows";
 import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
 import { PhysicsSolverSystem } from "./physics/physicssolver.system";
+import { drawOBB } from "./gl/constraintDisplay";
 
 function positionToMat4(
   dest: Mat4,
@@ -70,6 +72,10 @@ export class Engine<T extends BaseScene> {
   elapsed = 0;
   lightRenderers: Record<string, LightRenderer> = {};
   systems: T["systems"] = [];
+
+  debug = {
+    drawConstraints: false,
+  };
 
   // gbuffer
   renderFrameBuffer: FrameBuffer;
@@ -244,6 +250,19 @@ export class Engine<T extends BaseScene> {
       // render 2d shapes
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.CULL_FACE);
+
+      if (this.debug.drawConstraints) {
+        this.root?.entities
+          .withComponents(ConstraintComponent)
+          .forEach((entity) => {
+            drawOBB(
+              gl,
+              renderParams.worldToViewMatrix,
+              renderParams.camera.projection,
+              entity.component(ConstraintComponent)
+            );
+          });
+      }
 
       this.root?.entities
         .withComponents(Model2DComponent)

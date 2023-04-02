@@ -6,3 +6,4 @@ export const ShapeComponent = Symbol("Shape");
 export const LightComponent = Symbol("Light");
 
 export const RigidBodyComponent = Symbol("RigidBody");
+export const ConstraintComponent = Symbol("Constraint");

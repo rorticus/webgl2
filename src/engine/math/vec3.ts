@@ -5,6 +5,18 @@ export function vec3(x = 0, y = 0, z = 0) {
   return new Float32Array([x, y, z]);
 }
 
+export function vec3Clone(dest: Vec3, source: Vec3) {
+  dest[0] = source[0];
+  dest[1] = source[1];
+  dest[2] = source[2];
+}
+
+export function vec3Clear(dest: Vec3) {
+  dest[0] = 0;
+  dest[1] = 0;
+  dest[2] = 0;
+}
+
 export function vec3Add(dest: Vec3, a: Vec3, b: Vec3) {
   dest[0] = a[0] + b[0];
   dest[1] = a[1] + b[1];

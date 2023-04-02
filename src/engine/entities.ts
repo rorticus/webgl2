@@ -17,7 +17,7 @@ OptionalExcept<T, U>
 
  */
 
-type EntityWithComponents<T extends ComponentProps<T>, C extends AnyProps<T>> = {
+export type EntityWithComponents<T extends ComponentProps<T>, C extends AnyProps<T>> = {
   entity: Entity;
   component<K extends keyof T>(c: K): K extends keyof C ? T[K] : T[K] | undefined;
 };

@@ -7,9 +7,10 @@ import { mtl as objMats } from "./models/scene.mtl";
 import { Engine } from "./engine/engine";
 import { Scene } from "./engine/scene";
 import {
+  ConstraintComponent,
   LightComponent,
   ModelComponent,
-  PositionComponent,
+  PositionComponent, RigidBodyComponent
 } from "./engine/components";
 import gbufferVert from "./engine/shaders/gbuffer.vert";
 import gbufferFrag from "./engine/shaders/gbuffer.frag";
@@ -19,9 +20,15 @@ import {
   createPointShape,
   createRectangle,
 } from "./engine/shapes";
+import { createIcoSphere } from "./engine/gl/sphere";
+import { vec4 } from "./engine/math/vec4";
+import { RigidBody } from "./engine/physics/physics";
+import Particle from "./engine/physics/particle";
+import { obb } from "./engine/math/geometry3d";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const engine = new Engine(canvas);
+engine.debug.drawConstraints = true;
 
 const modelMaterials = loadMaterials(objMats as unknown as string);
 const modelGeometry = loadObj(objModel, modelMaterials);
@@ -31,22 +38,22 @@ const material = new Material(gbufferVert, gbufferFrag);
 const scene = new Scene();
 engine.setRootScene(scene);
 scene.camera.position = vec3(0, 0, 15);
-let yAngle = Math.PI / 4;
-let xAngle = Math.PI / 4;
+let yAngle = Math.PI / 6;
+let xAngle = Math.PI / 8;
 let radius = 5;
 
 const model = new Model(modelGeometry, material);
 
 const modelOrientation = vec3(0, 0, 0);
 
-scene.entities.add({
-  [ModelComponent]: model,
-  [PositionComponent]: {
-    position: vec3(0, 0, 0),
-    orientation: modelOrientation,
-    scale: 1,
-  }
-});
+// scene.entities.add({
+//   [ModelComponent]: model,
+//   [PositionComponent]: {
+//     position: vec3(0, 0, 0),
+//     orientation: modelOrientation,
+//     scale: 1,
+//   }
+// });
 
 scene.entities.add({
   [LightComponent]: {
@@ -63,9 +70,31 @@ scene.entities.add({
   },
 });
 
-scene.entities.add(createPointShape(-0.25, 0.25, 5, vec3(1, 1, 1)));
-scene.entities.add(createRectangle(0.25, 0.25, 0.1, 0.1, vec3(1, 0, 0)));
-scene.entities.add(createCircle(-0.25, -0.25, 0.2, vec3(0, 1, 0)));
+const g = createIcoSphere();
+g.groups[0].uniforms = {
+  diffuse: { type: 'vec3', value: vec3(1, 1, 1)}
+}
+
+const dot = new Model(g, material);
+const p = new Particle();
+
+scene.entities.add({
+  [ModelComponent]: dot,
+  [PositionComponent]: {
+    position: vec3(1, 1, 1),
+    orientation: vec3(),
+    scale: 0.1,
+  },
+  [RigidBodyComponent]: p,
+})
+
+scene.entities.add({
+  [ConstraintComponent]: obb(vec3(0, 0.5, 1), vec3(4, 0.1, 4)),
+})
+
+// scene.entities.add(createPointShape(-0.25, 0.25, 5, vec3(1, 1, 1)));
+// scene.entities.add(createRectangle(0.25, 0.25, 0.1, 0.1, vec3(1, 0, 0)));
+// scene.entities.add(createCircle(-0.25, -0.25, 0.2, vec3(0, 1, 0)));
 
 // scene.entities.addEntity({
 //   [LightComponent]: {
@@ -177,6 +206,6 @@ function debug() {
   }, 1000);
 }
 
-debug();
+// debug();
 
 export {};
