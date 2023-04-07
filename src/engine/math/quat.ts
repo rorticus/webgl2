@@ -218,5 +218,26 @@ export function quatFromEuler(dest: Quat, euler: Float32Array) {
   return dest;
 }
 
-// calculate a quanternian from a rotation matrix
-// https://stackoverflow.com/questions/52413464/look-at-quaternion-using-up-vector/52551983#52551983
+export function quatInvert(dest: Quat, quat: Quat) {
+  dest[0] = quat[0];
+  dest[1] = -quat[1];
+  dest[2] = -quat[2];
+  dest[3] = -quat[3];
+
+  return dest;
+}
+
+export function vec3TransformQuat(dest: Vec3, a: Vec3, q: Quat) {
+  const r = {
+    x: q[0] * a[0] + q[2] * a[2] - q[3] * a[1],
+    y: q[0] * a[1] + q[3] * a[0] - q[1] * a[2],
+    z: q[0] * a[2] + q[1] * a[1] - q[2] * a[0],
+    w: -q[1] * a[0] - q[2] * a[1] - q[3] * a[2],
+  };
+
+  dest[1] = r.w * -q[1] + r.x * q[0] - r.y * q[3] + r.z * q[2];
+  dest[2] = r.w * -q[2] + r.x * q[3] + r.y * q[0] - r.z * q[1];
+  dest[3] = r.w * -q[3] - r.x * q[2] + r.y * q[1] + r.z * q[0];
+
+  return dest;
+}

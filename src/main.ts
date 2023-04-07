@@ -10,7 +10,8 @@ import {
   ConstraintComponent,
   LightComponent,
   ModelComponent,
-  PositionComponent, RigidBodyComponent
+  PositionComponent,
+  RigidBodyComponent,
 } from "./engine/components";
 import gbufferVert from "./engine/shaders/gbuffer.vert";
 import gbufferFrag from "./engine/shaders/gbuffer.frag";
@@ -25,6 +26,7 @@ import { vec4 } from "./engine/math/vec4";
 import { RigidBody } from "./engine/physics/physics";
 import Particle from "./engine/physics/particle";
 import { obb } from "./engine/math/geometry3d";
+import { quat, quatRotationAboutX } from "./engine/math/quat";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const engine = new Engine(canvas);
@@ -72,8 +74,8 @@ scene.entities.add({
 
 const g = createIcoSphere();
 g.groups[0].uniforms = {
-  diffuse: { type: 'vec3', value: vec3(1, 1, 1)}
-}
+  diffuse: { type: "vec3", value: vec3(1, 1, 1) },
+};
 
 const dot = new Model(g, material);
 const p = new Particle();
@@ -86,11 +88,16 @@ scene.entities.add({
     scale: 0.1,
   },
   [RigidBodyComponent]: p,
-})
+});
 
+const o = obb(
+  vec3(0, 0.5, 1),
+  vec3(2.5, 0.1, 1),
+  // quatRotationAboutX(quat(0), Math.PI / 12)
+);
 scene.entities.add({
-  [ConstraintComponent]: obb(vec3(0, 0.5, 1), vec3(4, 0.1, 4)),
-})
+  [ConstraintComponent]: o,
+});
 
 // scene.entities.add(createPointShape(-0.25, 0.25, 5, vec3(1, 1, 1)));
 // scene.entities.add(createRectangle(0.25, 0.25, 0.1, 0.1, vec3(1, 0, 0)));

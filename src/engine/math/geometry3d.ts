@@ -24,7 +24,7 @@ import {
   Triangle3D,
 } from "../types";
 import { vec2DistanceToSq } from "./vec2";
-import { mat3, mat3Identity } from "./mat3";
+import { quat, quatInvert, vec3TransformQuat } from "./quat";
 
 export interface Interval3D {
   min: number;
@@ -111,7 +111,7 @@ export function aabbFromMinMax(min: Point3D, max: Point3D) {
 export function obb(
   position = vec3(),
   size = vec3(1, 1, 1),
-  orientation = mat3Identity(mat3())
+  orientation = quat()
 ): OBB {
   return {
     position,
@@ -183,47 +183,39 @@ export function closestPointAABB(point: Point3D, aabb: AABB) {
 }
 
 export function pointInOBB(point: Point3D, obb: OBB) {
-  const dir = vec3Sub(vec3(), point, obb.position);
+  const localPoint = vec3Sub(vec3(), point, obb.position);
+  const localPointRotated = vec3TransformQuat(
+    vec3(),
+    localPoint,
+    quatInvert(quat(), obb.orientation)
+  );
 
-  for (let i = 0; i < 3; i++) {
-    const axis = vec3(
-      obb.orientation[i],
-      obb.orientation[i + 1],
-      obb.orientation[i + 2]
-    );
-    const distance = vec3Dot(dir, axis);
-
-    if (distance > obb.size[i] || distance < -obb.size[i]) {
-      return false;
-    }
-  }
-
-  return true;
+  return (
+    Math.abs(localPointRotated[0]) <= obb.size[0] &&
+    Math.abs(localPointRotated[1]) <= obb.size[1] &&
+    Math.abs(localPointRotated[2]) <= obb.size[2]
+  );
 }
 
 export function closetPointOBB(point: Point3D, obb: OBB) {
-  const result = vec3(...obb.position);
-  const dir = vec3Sub(vec3(), point, obb.position);
+  const localPoint = vec3Sub(vec3(), point, obb.position);
+  const localPointRotated = vec3TransformQuat(
+    vec3(),
+    localPoint,
+    quatInvert(quat(), obb.orientation)
+  );
 
-  for (let i = 0; i < 3; i++) {
-    const axis = vec3(
-      obb.orientation[i],
-      obb.orientation[i + 1],
-      obb.orientation[i + 2]
-    );
-    let distance = vec3Dot(dir, axis);
+  const closestPoint = vec3(
+    Math.max(-obb.size[0], Math.min(obb.size[0], localPointRotated[0])),
+    Math.max(-obb.size[1], Math.min(obb.size[1], localPointRotated[1])),
+    Math.max(-obb.size[2], Math.min(obb.size[2], localPointRotated[2]))
+  );
 
-    if (distance > obb.size[i]) {
-      distance = obb.size[i];
-    }
-    if (distance < -obb.size[i]) {
-      distance = -obb.size[i];
-    }
-
-    vec3Add(result, result, vec3Scale(vec3(), axis, distance));
-  }
-
-  return result;
+  return vec3Add(
+    vec3(),
+    vec3TransformQuat(vec3(), closestPoint, obb.orientation),
+    obb.position
+  );
 }
 
 export function pointOnPlane(point: Point3D, plane: Plane3D) {
@@ -356,42 +348,42 @@ export function getIntervalAABB(aabb: AABB, axis: Vec3): Interval3D {
   };
 }
 
-export function getIntervalOBB(obb: OBB, axis: Vec3) {
-  const c = obb.position;
-  const e = obb.size;
-  const A = [
-    vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]),
-    vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]),
-    vec3(obb.orientation[6], obb.orientation[7], obb.orientation[8]),
-  ];
+export function getOBBCornerPoints(obb: OBB) {
+  const cornerPoints: Vec3[] = [];
 
-  const vertex = [
-    vec3(c[0] + e[0] * A[0][0] + e[1] * A[1][0] + e[2] * A[2][0]),
-    vec3(c[0] + e[0] * A[0][0] + e[1] * A[1][0] - e[2] * A[2][0]),
-    vec3(c[0] + e[0] * A[0][0] - e[1] * A[1][0] + e[2] * A[2][0]),
-    vec3(c[0] + e[0] * A[0][0] - e[1] * A[1][0] - e[2] * A[2][0]),
-    vec3(c[0] - e[0] * A[0][0] + e[1] * A[1][0] + e[2] * A[2][0]),
-    vec3(c[0] - e[0] * A[0][0] + e[1] * A[1][0] - e[2] * A[2][0]),
-    vec3(c[0] - e[0] * A[0][0] - e[1] * A[1][0] + e[2] * A[2][0]),
-    vec3(c[0] - e[0] * A[0][0] - e[1] * A[1][0] - e[2] * A[2][0]),
-  ];
-
-  let min = vec3Dot(axis, vertex[0]);
-  let max = min;
-
-  for (let i = 1; i < 8; i++) {
-    const projection = vec3Dot(axis, vertex[i]);
-
-    if (projection < min) {
-      min = projection;
-    } else if (projection > max) {
-      max = projection;
+  for (let i = -1; i <= 1; i += 2) {
+    for (let j = -1; j <= 1; j += 2) {
+      for (let k = -1; k <= 1; k += 2) {
+        cornerPoints.push(
+          vec3Add(
+            vec3(),
+            obb.position,
+            vec3(
+              i * obb.position[0] + i * obb.size[0],
+              j * obb.position[1] + j * obb.size[1],
+              k * obb.position[2] + k * obb.size[2]
+            )
+          )
+        );
+      }
     }
   }
 
+  return cornerPoints.map((point) => {
+    return vec3TransformQuat(vec3(), point, obb.orientation);
+  });
+}
+
+export function getIntervalOBB(obb: OBB, axis: Vec3) {
+  const cornerPoints = getOBBCornerPoints(obb);
+
+  const projections = cornerPoints.map((point) => {
+    return vec3Dot(point, axis);
+  });
+
   return {
-    min,
-    max,
+    min: Math.min(...projections),
+    max: Math.max(...projections),
   };
 }
 
@@ -407,9 +399,9 @@ export function aabbOOB(aabb: AABB, obb: OBB) {
     vec3(1, 0, 0),
     vec3(0, 1, 0),
     vec3(0, 0, 1),
-    vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]),
-    vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]),
-    vec3(obb.orientation[6], obb.orientation[7], obb.orientation[8]),
+    vec3TransformQuat(vec3(), vec3(1, 0, 0), obb.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 1, 0), obb.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 0, 1), obb.orientation),
   ];
 
   for (let i = 0; i < 3; i++) {
@@ -448,12 +440,12 @@ export function overlapOnAxisOBBOBB(a: OBB, b: OBB, axis: Vec3) {
 
 export function obbOBB(obb1: OBB, obb2: OBB) {
   const test = [
-    vec3(obb1.orientation[0], obb1.orientation[1], obb1.orientation[2]),
-    vec3(obb1.orientation[3], obb1.orientation[4], obb1.orientation[5]),
-    vec3(obb1.orientation[6], obb1.orientation[7], obb1.orientation[8]),
-    vec3(obb2.orientation[0], obb2.orientation[1], obb2.orientation[2]),
-    vec3(obb2.orientation[3], obb2.orientation[4], obb2.orientation[5]),
-    vec3(obb2.orientation[6], obb2.orientation[7], obb2.orientation[8]),
+    vec3TransformQuat(vec3(), vec3(1, 0, 0), obb1.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 1, 0), obb1.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 0, 1), obb1.orientation),
+    vec3TransformQuat(vec3(), vec3(1, 0, 0), obb2.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 1, 0), obb2.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 0, 1), obb2.orientation),
   ];
 
   for (let i = 0; i < 3; i++) {
@@ -471,22 +463,33 @@ export function obbOBB(obb1: OBB, obb2: OBB) {
   return true;
 }
 
+export function pointPlaneDistance(point: Vec3, plane: Plane3D) {
+  const [x, y, z] = plane.normal;
+  const d = plane.distance;
+
+  return x * point[0] + y * point[1] + z * point[2] + d;
+}
+
 export function obbPlane(obb: OBB, plane: Plane3D) {
-  const rot = [
-    vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]),
-    vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]),
-    vec3(obb.orientation[6], obb.orientation[7], obb.orientation[8]),
-  ];
+  const cornerPoints = getOBBCornerPoints(obb);
 
-  const len =
-    Math.abs(vec3Dot(rot[0], plane.normal)) * obb.size[0] +
-    Math.abs(vec3Dot(rot[1], plane.normal)) * obb.size[1] +
-    Math.abs(vec3Dot(rot[2], plane.normal)) * obb.size[2];
+  let positive = false;
+  let negative = false;
 
-  const dot = vec3Dot(plane.normal, obb.position);
-  const dist = dot - plane.distance;
+  for (const point of cornerPoints) {
+    const distance = pointPlaneDistance(point, plane);
+    if (distance > 0) {
+      positive = true;
+    } else if (distance < 0) {
+      positive = false;
+    }
 
-  return Math.abs(dist) <= len;
+    if (positive && negative) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function planePlane(a: Plane3D, b: Plane3D) {
@@ -551,66 +554,41 @@ export function raycastAABB(
 ): boolean {
   resetRaycastResult(result);
 
-  const min = aabbMin(aabb);
-  const max = aabbMax(aabb);
+  let tMin = -Infinity;
+  let tMax = Infinity;
 
-  const t1 = (min[0] - ray.origin[0]) / ray.direction[0];
-  const t2 = (max[0] - ray.origin[0]) / ray.direction[0];
-  const t3 = (min[1] - ray.origin[1]) / ray.direction[1];
-  const t4 = (max[1] - ray.origin[1]) / ray.direction[1];
-  const t5 = (min[2] - ray.origin[2]) / ray.direction[2];
-  const t6 = (max[2] - ray.origin[2]) / ray.direction[2];
+  for (let i = 0; i < 3; i++) {
+    if (Math.abs(ray.direction[i]) < 1e-8) {
+      if (ray.origin[i] < -aabb.size[i] || ray.origin[i] > aabb.size[i]) {
+        return false;
+      }
+    } else {
+      const invD = 1 / ray.direction[i];
+      let t0 = (-aabb.size[i] - ray.origin[i]) * invD;
+      let t1 = (aabb.size[i] - ray.origin[i]) * invD;
 
-  const tmin = Math.max(
-    Math.max(Math.min(t1, t2), Math.min(t3, t4)),
-    Math.min(t5, t6)
-  );
-  const tmax = Math.min(
-    Math.min(Math.min(t1, t2, Math.min(t3, t4)), Math.min(t5, t6))
-  );
+      if (t0 > t1) {
+        const temp = t0;
+        t0 = t1;
+        t1 = temp;
+      }
 
-  if (tmax < 0) {
-    return false;
+      tMin = Math.max(tMin, t0);
+      tMax = Math.min(tMax, t1);
+
+      if (tMin > tMax) {
+        return false;
+      }
+    }
   }
 
-  if (tmin > tmax) {
-    return false;
-  }
-
-  let t_result = tmin;
-
-  if (tmin < 0) {
-    t_result = tmax;
-  }
-
-  const normals = [
-    vec3(-1, 0, 0),
-    vec3(1, 0, 0),
-    vec3(0, -1, 0),
-    vec3(0, 1, 0),
-    vec3(0, 0, -1),
-    vec3(0, 0, 1),
-  ];
-
-  result.t = t_result;
+  vec3Add(result.point, ray.origin, vec3Scale(vec3(), ray.direction, tMin));
+  result.t = tMin;
   result.hit = true;
-  vec3Add(result.point, ray.origin, vec3Scale(vec3(), ray.direction, t_result));
-
-  if (cmp(t_result, t1)) {
-    result.normal = normals[0];
-  } else if (cmp(t_result, t2)) {
-    result.normal = normals[1];
-  } else if (cmp(t_result, t3)) {
-    result.normal = normals[2];
-  } else if (cmp(t_result, t4)) {
-    result.normal = normals[3];
-  } else if (cmp(t_result, t5)) {
-    result.normal = normals[4];
-  } else if (cmp(t_result, t6)) {
-    result.normal = normals[5];
-  } else {
-    result.normal = vec3(0, 0, 1);
-  }
+  result.normal = vec3Normalize(
+    vec3(),
+    vec3Sub(vec3(), result.point, aabb.origin)
+  );
 
   return true;
 }
@@ -622,74 +600,35 @@ export function raycastOBB(
 ): boolean {
   resetRaycastResult(result);
 
-  const x = vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]);
-  const y = vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]);
-  const z = vec3(obb.orientation[6], obb.orientation[7], obb.orientation[8]);
+  const inverseOrientation = quatInvert(quat(), obb.orientation);
 
-  const p = vec3Sub(vec3(), obb.position, ray.origin);
-  const f = vec3(
-    vec3Dot(x, ray.direction),
-    vec3Dot(y, ray.direction),
-    vec3Dot(z, ray.direction)
+  const localOrigin = vec3(
+    ray.origin[0] - obb.position[0],
+    ray.origin[1] - obb.position[1],
+    ray.origin[2] - obb.position[2]
+  );
+  vec3TransformQuat(localOrigin, localOrigin, inverseOrientation);
+  const localDirection = vec3TransformQuat(
+    vec3(),
+    ray.direction,
+    inverseOrientation
   );
 
-  const e = vec3(vec3Dot(x, p), vec3Dot(y, p), vec3Dot(z, p));
-
-  const t = [0, 0, 0, 0, 0, 0];
-  for (let i = 0; i < 3; i++) {
-    if (cmp(f[i], 0)) {
-      if (-e[i] - obb.size[i] > 0 || -e[i] + obb.size[i] < 0) {
-        return false;
-      }
-      f[i] = 0.00001;
-    }
-
-    t[i * 2] = (e[i] + obb.size[i]) / f[i];
-    t[i * 2 + 1] = (e[i] - obb.size[i]) / f[i];
-  }
-
-  const tmin = Math.max(
-    Math.max(Math.min(t[0], t[1]), Math.min(t[2], t[3]), Math.min(t[4], t[5]))
-  );
-  const tmax = Math.min(
-    Math.min(Math.max(t[0], t[1], Math.max(t[2], t[3])), Math.max(t[4], t[5]))
+  const hit = raycastAABB(
+    ray3D(localOrigin, localDirection),
+    aabb(vec3(), obb.size),
+    result
   );
 
-  if (tmax < 0) {
-    return false;
+  if (hit) {
+    // transform the hit point and normal back into world space
+    vec3TransformQuat(result.point, result.point, obb.orientation);
+    vec3Add(result.point, result.point, obb.position);
+
+    vec3TransformQuat(result.normal, result.normal, obb.orientation);
   }
 
-  if (tmin > tmax) {
-    return false;
-  }
-
-  let t_result = tmin;
-
-  if (tmin < 0) {
-    t_result = tmax;
-  }
-
-  result.hit = true;
-  result.t = t_result;
-  vec3Add(result.point, ray.origin, vec3Scale(vec3(), ray.direction, t_result));
-
-  const normals = [
-    x,
-    vec3Scale(vec3(), x, -1),
-    y,
-    vec3Scale(vec3(), y, -1),
-    z,
-    vec3Scale(vec3(), z, -1),
-  ];
-
-  for (let i = 0; i < 6; i++) {
-    if (cmp(t_result, t[i])) {
-      result.normal = normals[i];
-      break;
-    }
-  }
-
-  return true;
+  return hit;
 }
 
 export function raycastPlane(
@@ -901,29 +840,30 @@ export function overlapOnAxisTriangleOBB(
   return a.min <= b.max && b.min <= a.max;
 }
 
-export function triangleOBB(triangle: Triangle3D, obb: OBB) {
-  const f0 = vec3Sub(vec3(), triangle.b, triangle.a);
-  const f1 = vec3Sub(vec3(), triangle.c, triangle.a);
-  const f2 = vec3Sub(vec3(), triangle.c, triangle.b);
+export function getOBBFaceNormals(obb: OBB) {
+  return [
+    vec3TransformQuat(vec3(), vec3(1, 0, 0), obb.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 1, 0), obb.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 0, 1), obb.orientation),
+  ];
+}
 
-  const u0 = vec3(obb.orientation[0], obb.orientation[1], obb.orientation[2]);
-  const u1 = vec3(obb.orientation[3], obb.orientation[4], obb.orientation[5]);
-  const u2 = vec3(obb.orientation[6], obb.orientation[6], obb.orientation[7]);
+export function triangleOBB(triangle: Triangle3D, obb: OBB) {
+  const triangleEdges = [
+    vec3Sub(vec3(), triangle.b, triangle.a),
+    vec3Sub(vec3(), triangle.c, triangle.b),
+    vec3Sub(vec3(), triangle.a, triangle.c),
+  ];
+
+  const obbNormals = getOBBFaceNormals(obb);
+  const triangleNormal = vec3Cross(vec3(), triangleEdges[0], triangleEdges[1]);
 
   const axes = [
-    u0,
-    u1,
-    u2,
-    vec3Cross(vec3(), f0, f1),
-    vec3Cross(vec3(), u0, f0),
-    vec3Cross(vec3(), u0, f1),
-    vec3Cross(vec3(), u0, f2),
-    vec3Cross(vec3(), u1, f0),
-    vec3Cross(vec3(), u1, f1),
-    vec3Cross(vec3(), u1, f2),
-    vec3Cross(vec3(), u2, f0),
-    vec3Cross(vec3(), u2, f1),
-    vec3Cross(vec3(), u2, f2),
+    ...obbNormals,
+    triangleNormal,
+    ...triangleEdges.flatMap((edge) =>
+      obbNormals.map((normal) => vec3Cross(vec3(), edge, normal))
+    ),
   ];
 
   for (let i = 0; i < axes.length; i++) {

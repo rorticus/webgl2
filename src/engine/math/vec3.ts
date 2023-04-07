@@ -65,9 +65,16 @@ export function vec3Dot(a: Vec3, b: Vec3) {
 
 export function vec3Normalize(dest: Vec3, a: Vec3) {
   const length = Math.sqrt(vec3Dot(a, a));
-  dest[0] = a[0] / length;
-  dest[1] = a[1] / length;
-  dest[2] = a[2] / length;
+  if (length === 0) {
+    dest[0] = 0;
+    dest[1] = 0;
+    dest[2] = 0;
+  } else {
+    dest[0] = a[0] / length;
+    dest[1] = a[1] / length;
+    dest[2] = a[2] / length;
+  }
+
   return dest;
 }
 

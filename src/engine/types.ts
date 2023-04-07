@@ -6,7 +6,7 @@ import { BoundingSphere } from "./gl/boundingSphere";
 import { Camera } from "./gl/camera";
 import { Circle2D } from "./math/circle2d";
 import { Rectangle2D } from "./math/rectangle2d";
-import { Mat3 } from "./math/mat3";
+import { Quat } from "./math/quat";
 
 export type ArrayToKeys<O, T extends (keyof O)[]> = {
   [K in T[number]]: O[K];
@@ -99,7 +99,7 @@ export interface AABB {
 export interface OBB {
   position: Point3D;
   size: Vec3;
-  orientation: Mat3;
+  orientation: Quat;
 }
 
 export interface Plane3D {

@@ -29,6 +29,24 @@ export function mat4Clone(source: Mat4) {
   return new Float32Array(source);
 }
 
+export function mat4FromMat3(mat4: Mat4, mat3: Mat3) {
+  mat4Identity(mat4);
+
+  mat4[0] = mat3[0];
+  mat4[1] = mat3[1];
+  mat4[2] = mat3[2];
+
+  mat4[4] = mat3[3];
+  mat4[5] = mat3[4];
+  mat4[6] = mat3[5];
+
+  mat4[8] = mat3[6];
+  mat4[9] = mat3[7];
+  mat4[10] = mat3[8];
+
+  return mat4;
+}
+
 export function mat4Identity(dest: Mat4) {
   dest[0] = 1;
   dest[1] = 0;
