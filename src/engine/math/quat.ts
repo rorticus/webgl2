@@ -235,9 +235,9 @@ export function vec3TransformQuat(dest: Vec3, a: Vec3, q: Quat) {
     w: -q[1] * a[0] - q[2] * a[1] - q[3] * a[2],
   };
 
-  dest[1] = r.w * -q[1] + r.x * q[0] - r.y * q[3] + r.z * q[2];
-  dest[2] = r.w * -q[2] + r.x * q[3] + r.y * q[0] - r.z * q[1];
-  dest[3] = r.w * -q[3] - r.x * q[2] + r.y * q[1] + r.z * q[0];
+  dest[0] = r.w * -q[1] + r.x * q[0] - r.y * q[3] + r.z * q[2];
+  dest[1] = r.w * -q[2] + r.y * q[0] - r.z * q[1] + r.x * q[3];
+  dest[2] = r.w * -q[3] + r.z * q[0] - r.x * q[2] + r.y * q[1];
 
   return dest;
 }

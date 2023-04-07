@@ -585,10 +585,24 @@ export function raycastAABB(
   vec3Add(result.point, ray.origin, vec3Scale(vec3(), ray.direction, tMin));
   result.t = tMin;
   result.hit = true;
-  result.normal = vec3Normalize(
-    vec3(),
-    vec3Sub(vec3(), result.point, aabb.origin)
-  );
+
+  const epsilon = 1e-8;
+  const max = aabbMax(aabb);
+  const min = aabbMin(aabb);
+
+  if (Math.abs(result.point[0] - min[0]) < epsilon) {
+    result.normal[0] = -1;
+  } else if (Math.abs(result.point[0] - max[0]) < epsilon) {
+    result.normal[0] = -1;
+  } else if (Math.abs(result.point[1] - min[1]) < epsilon) {
+    result.normal[1] = -1;
+  } else if (Math.abs(result.point[1] - max[1]) < epsilon) {
+    result.normal[1] = 1;
+  } else if (Math.abs(result.point[2] - min[2]) < epsilon) {
+    result.normal[2] = -1;
+  } else if (Math.abs(result.point[2] - max[2]) < epsilon) {
+    result.normal[2] = 1;
+  }
 
   return true;
 }

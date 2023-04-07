@@ -5,7 +5,7 @@ import constraintFragment from "../shaders/constraint.frag";
 import Material from "./material";
 import { OBB } from "../types";
 import { mat4, Mat4, mat4Identity, mat4Mul, mat4Scale, mat4Translation } from "../math/mat4";
-import { vec3 } from "../math/vec3";
+import { vec3, vec3Scale } from "../math/vec3";
 import { quatToMat4 } from "../math/quat";
 
 const constraintMaterial = new Material(constraintVertex, constraintFragment);
@@ -58,7 +58,7 @@ export function drawOBB(gl: WebGL2RenderingContext, worldToViewMatrix: Mat4, pro
   mat4Identity(worldMatrix);
 
   const translate = mat4Translation(mat4(), obb.position);
-  const s = mat4Scale(mat4(), obb.size);
+  const s = mat4Scale(mat4(), vec3Scale(vec3(), obb.size, 2));
   const r = quatToMat4(mat4(), obb.orientation);
 
   mat4Mul(worldMatrix, worldMatrix, s);
