@@ -509,7 +509,7 @@ export function raycastResult(): RaycastResult {
 
 export function resetRaycastResult(result: RaycastResult) {
   result.point = vec3();
-  result.normal = vec3(0, 0, 1);
+  result.normal = vec3(0, 0, 0);
   result.hit = false;
   result.t = -1;
 }

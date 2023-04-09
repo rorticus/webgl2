@@ -85,7 +85,7 @@ scene.entities.add({
   [PositionComponent]: {
     position: vec3(1, 1, 1),
     orientation: vec3(),
-    scale: 0.1,
+    scale: 0.05,
   },
   [RigidBodyComponent]: p,
 });
@@ -93,7 +93,7 @@ scene.entities.add({
 const o = obb(
   vec3(0, 0.5, 1),
   vec3(2.5, 0.1, 1),
-  // quatRotationAboutX(quat(0), Math.PI / 12)
+  quatRotationAboutX(quat(), Math.PI / 24)
 );
 scene.entities.add({
   [ConstraintComponent]: o,
