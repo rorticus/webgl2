@@ -119,3 +119,10 @@ export interface RaycastResult {
   t: number;
   hit: boolean;
 }
+
+export interface CollisionManifold {
+  colliding: boolean;
+  normal: Vec3;
+  depth: number;
+  contacts: Vec3[];
+}

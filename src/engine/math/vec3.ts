@@ -100,3 +100,11 @@ export function vec3Project(dest: Vec3, a: Vec3, b: Vec3) {
 
   return vec3Scale(dest, b, dot / magnitudeSq);
 }
+
+export function vec3Zero(dest: Vec3) {
+  dest[0] = 0;
+  dest[1] = 0;
+  dest[2] = 0;
+
+  return dest;
+}

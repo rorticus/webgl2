@@ -7,14 +7,17 @@ import {
   vec3DistanceTo,
   vec3DistanceToSq,
   vec3Dot,
+  vec3Magnitude,
   vec3MagnitudeSq,
   vec3Normalize,
   vec3Project,
   vec3Scale,
   vec3Sub,
+  vec3Zero,
 } from "./vec3";
 import {
   AABB,
+  CollisionManifold,
   Line3D,
   OBB,
   Plane3D,
@@ -197,7 +200,7 @@ export function pointInOBB(point: Point3D, obb: OBB) {
   );
 }
 
-export function closetPointOBB(point: Point3D, obb: OBB) {
+export function closestPointOBB(point: Point3D, obb: OBB) {
   const localPoint = vec3Sub(vec3(), point, obb.position);
   const localPointRotated = vec3TransformQuat(
     vec3(),
@@ -285,7 +288,7 @@ export function sphereAABB(sphere: Sphere3D, aabb: AABB) {
 }
 
 export function sphereOBB(sphere: Sphere3D, obb: OBB) {
-  const closest = closetPointOBB(sphere.position, obb);
+  const closest = closestPointOBB(sphere.position, obb);
   const distance = vec3DistanceToSq(sphere.position, closest);
 
   return distance <= sphere.radius * sphere.radius;
@@ -1024,4 +1027,91 @@ export function lineTestTriangle(line: Line3D, triangle: Triangle3D) {
   }
 
   return result.t >= 0 && result.t * result.t < line3DLengthSq(line);
+}
+
+export function resetCollisionManifold(manifold: CollisionManifold) {
+  manifold.colliding = false;
+  vec3Zero(manifold.normal);
+  manifold.depth = 0;
+  manifold.contacts = [];
+}
+
+export function createCollisionManifold(): CollisionManifold {
+  return {
+    colliding: false,
+    normal: vec3(),
+    depth: 0,
+    contacts: [],
+  };
+}
+
+export function findCollisionFeaturesSphereSphere(
+  a: Sphere3D,
+  b: Sphere3D
+): CollisionManifold {
+  const result = createCollisionManifold();
+
+  const r = a.radius + b.radius;
+  const d = vec3Sub(vec3(), a.position, b.position);
+
+  if (vec3MagnitudeSq(d) - r * r > 0 || vec3MagnitudeSq(d) === 0) {
+    return result;
+  }
+
+  vec3Normalize(d, d);
+
+  result.colliding = true;
+  result.normal = d;
+  result.depth = Math.abs(vec3Magnitude(d) - r) * 0.5;
+  const dpt = a.radius - result.depth;
+  const contact = vec3Add(vec3(), a.position, vec3Scale(vec3(), d, dpt));
+  result.contacts.push(contact);
+
+  return result;
+}
+
+export function findCollisionFeaturesSphereOBB(
+  a: OBB,
+  b: Sphere3D
+): CollisionManifold {
+  const result = createCollisionManifold();
+
+  const closestPoint = closestPointOBB(b.position, a);
+
+  const d = vec3MagnitudeSq(vec3Sub(vec3(), b.position, closestPoint));
+
+  if (d > b.radius * b.radius) {
+    return result;
+  }
+
+  if (cmp(d, 0)) {
+    const mSq = vec3MagnitudeSq(vec3Sub(vec3(), closestPoint, a.position));
+
+    if (cmp(mSq, 0)) {
+      return result;
+    }
+
+    vec3Sub(result.normal, b.position, closestPoint);
+    vec3Normalize(result.normal, result.normal);
+  }
+
+  const outsidePoint = vec3Add(
+    vec3(),
+    b.position,
+    vec3Scale(vec3(), result.normal, b.radius)
+  );
+  const distance = vec3Magnitude(vec3Sub(vec3(), closestPoint, outsidePoint));
+
+  result.colliding = true;
+  result.contacts.push(
+    vec3Add(
+      vec3(),
+      closestPoint,
+      vec3Scale(vec3(), vec3Sub(vec3(), outsidePoint, closestPoint), 0.5)
+    )
+  );
+
+  result.depth = distance * 0.5;
+
+  return result;
 }
