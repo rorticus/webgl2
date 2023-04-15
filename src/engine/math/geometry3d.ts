@@ -9,6 +9,7 @@ import {
   vec3Dot,
   vec3Magnitude,
   vec3MagnitudeSq,
+  vec3Negative,
   vec3Normalize,
   vec3Project,
   vec3Scale,
@@ -859,9 +860,18 @@ export function overlapOnAxisTriangleOBB(
 
 export function getOBBFaceNormals(obb: OBB) {
   return [
-    vec3TransformQuat(vec3(), vec3(1, 0, 0), obb.orientation),
-    vec3TransformQuat(vec3(), vec3(0, 1, 0), obb.orientation),
-    vec3TransformQuat(vec3(), vec3(0, 0, 1), obb.orientation),
+    vec3Normalize(
+      vec3(),
+      vec3TransformQuat(vec3(), vec3(1, 0, 0), obb.orientation)
+    ),
+    vec3Normalize(
+      vec3(),
+      vec3TransformQuat(vec3(), vec3(0, 1, 0), obb.orientation)
+    ),
+    vec3Normalize(
+      vec3(),
+      vec3TransformQuat(vec3(), vec3(0, 0, 1), obb.orientation)
+    ),
   ];
 }
 
@@ -1115,3 +1125,80 @@ export function findCollisionFeaturesSphereOBB(
 
   return result;
 }
+
+export function getOBBEdges(obb: OBB): Line3D[] {
+  const result: Line3D[] = [];
+
+  const points = getOBBCornerPoints(obb);
+
+  const index = [
+    [6, 1],
+    [6, 3],
+    [6, 4],
+    [2, 7],
+    [2, 5],
+    [2, 0],
+    [0, 1],
+    [0, 3],
+    [0, 7],
+    [7, 4],
+    [4, 5],
+    [5, 3],
+  ];
+
+  for (let i = 0; i < index.length; i++) {
+    result.push(line3d(points[index[i][0]], points[index[i][1]]));
+  }
+
+  return result;
+}
+
+export function getOBBPlanes(obb: OBB): Plane3D[] {
+  const corners = getOBBCornerPoints(obb);
+  const normals = getOBBFaceNormals(obb);
+
+  return [
+    plane3d(normals[0], vec3Dot(normals[0], corners[0])),
+    plane3d(
+      vec3Negative(vec3(), normals[0]),
+      vec3Dot(vec3Negative(vec3(), normals[0]), corners[4])
+    ),
+    plane3d(normals[1], vec3Dot(normals[1], corners[0])),
+    plane3d(
+      vec3Negative(vec3(), normals[1]),
+      vec3Dot(vec3Negative(vec3(), normals[1]), corners[2])
+    ),
+    plane3d(normals[2], vec3Dot(normals[2], corners[0])),
+    plane3d(
+      vec3Negative(vec3(), normals[2]),
+      vec3Dot(vec3Negative(vec3(), normals[2]), corners[1])
+    ),
+  ];
+}
+
+export function clipToPlane(plane: Plane3D, line: Line3D): Point3D | null {
+  const ab = vec3Sub(vec3(), line.end, line.start);
+  const nAB = vec3Dot(plane.normal, ab);
+
+  if (cmp(nAB, 0)) {
+    return null;
+  }
+
+  const nA = vec3Dot(plane.normal, line.start);
+  const t = (plane.distance - nA) / nAB;
+
+  if (t >= 0 && t <= 1) {
+    return vec3Add(vec3(), line.start, vec3Scale(vec3(), ab, t));
+  }
+
+  return null;
+}
+
+export function clipEdgesToOBB(edges: Line3D[], obb: OBB): Point3D[] {}
+
+export function obbOBBPenetrationDepth(o1: OBB, o2: OBB, axis: Vec3): number {}
+
+export function findOBBOBBCollisionFeatures(
+  A: OBB,
+  B: OBB
+): CollisionManifold {}

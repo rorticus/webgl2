@@ -108,3 +108,11 @@ export function vec3Zero(dest: Vec3) {
 
   return dest;
 }
+
+export function vec3Negative(dest: Vec3, a: Vec3) {
+  dest[0] = -a[0];
+  dest[1] = -a[1];
+  dest[2] = -a[2];
+
+  return dest;
+}
