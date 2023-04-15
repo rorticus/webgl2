@@ -1,4 +1,4 @@
-import { RigidBody } from "./physics";
+import { RIGID_BODY_PARTICLE, RigidBody } from "./physics";
 import {
   vec3,
   Vec3,
@@ -30,6 +30,7 @@ class Particle extends RigidBody {
   bounce: number;
   gravity: Vec3;
   friction: number;
+  type = RIGID_BODY_PARTICLE;
 
   constructor() {
     super();
