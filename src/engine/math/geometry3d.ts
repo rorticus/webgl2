@@ -3,6 +3,7 @@ import {
   vec3,
   Vec3,
   vec3Add,
+  vec3Clone,
   vec3Cross,
   vec3DistanceTo,
   vec3DistanceToSq,
@@ -1194,11 +1195,135 @@ export function clipToPlane(plane: Plane3D, line: Line3D): Point3D | null {
   return null;
 }
 
-export function clipEdgesToOBB(edges: Line3D[], obb: OBB): Point3D[] {}
+export function clipEdgesToOBB(edges: Line3D[], obb: OBB): Point3D[] {
+  const result: Point3D[] = [];
+  const planes = getOBBPlanes(obb);
 
-export function obbOBBPenetrationDepth(o1: OBB, o2: OBB, axis: Vec3): number {}
+  for (let i = 0; i < planes.length; i++) {
+    for (let j = 0; j < edges.length; j++) {
+      const p = clipToPlane(planes[j], edges[i]);
 
-export function findOBBOBBCollisionFeatures(
-  A: OBB,
-  B: OBB
-): CollisionManifold {}
+      if (p) {
+        if (pointInOBB(p, obb)) {
+          result.push(p);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+export function obbOBBPenetrationDepth(
+  o1: OBB,
+  o2: OBB,
+  axis: Vec3,
+  outShouldFlip: boolean = false
+): { depth: number; outShouldFlip: boolean } {
+  const i1 = getIntervalOBB(o1, vec3Normalize(vec3(), axis));
+  const i2 = getIntervalOBB(o2, vec3Normalize(vec3(), axis));
+
+  if (!(i2.min <= i1.max && i1.min <= i2.max)) {
+    return {
+      depth: 0,
+      outShouldFlip,
+    };
+  }
+
+  const d1 = i1.max - i2.min;
+  const d2 = i2.max - i1.min;
+
+  const min = Math.min(i1.min, i2.min);
+  const max = Math.max(i1.max, i2.max);
+
+  const length = max - min;
+
+  return {
+    depth: d1 + d2 - length,
+    outShouldFlip: outShouldFlip ? i2.min < i1.min : outShouldFlip,
+  };
+}
+
+export function findOBBOBBCollisionFeatures(A: OBB, B: OBB): CollisionManifold {
+  const result = createCollisionManifold();
+
+  const test = [
+    vec3TransformQuat(vec3(), vec3(1, 0, 0), A.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 1, 0), A.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 0, 1), A.orientation),
+    vec3TransformQuat(vec3(), vec3(1, 0, 0), B.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 1, 0), B.orientation),
+    vec3TransformQuat(vec3(), vec3(0, 0, 1), B.orientation),
+  ];
+
+  for (let i = 0; i < 3; i++) {
+    test.push(vec3Cross(vec3(), test[i], test[0]));
+    test.push(vec3Cross(vec3(), test[i], test[1]));
+    test.push(vec3Cross(vec3(), test[i], test[2]));
+  }
+
+  const hitNormal = vec3();
+  let shouldFlip = false;
+
+  for (let i = 0; i < test.length; i++) {
+    if (vec3MagnitudeSq(test[i]) < 0.0001) {
+      continue;
+    }
+
+    const { depth, outShouldFlip } = obbOBBPenetrationDepth(
+      A,
+      B,
+      test[i],
+      shouldFlip
+    );
+    shouldFlip = outShouldFlip;
+
+    if (depth <= 0) {
+      return result;
+    } else if (depth < result.depth) {
+      if (shouldFlip) {
+        vec3Scale(test[i], test[i], -1);
+      }
+      result.depth = depth;
+      vec3Clone(hitNormal, test[i]);
+    }
+  }
+
+  if (hitNormal[0] === 0 && hitNormal[1] === 0 && hitNormal[2] === 0) {
+    return result;
+  }
+
+  const axis = vec3Normalize(vec3(), hitNormal);
+
+  const c1 = clipEdgesToOBB(getOBBEdges(B), A);
+  const c2 = clipEdgesToOBB(getOBBEdges(A), B);
+
+  result.contacts = c1.concat(c2);
+
+  const i = getIntervalOBB(A, axis);
+  const distance = (i.max - i.min) * 0.5 - result.depth * 0.5;
+  const pointOnPlane = vec3Add(
+    vec3(),
+    A.position,
+    vec3Scale(vec3(), axis, distance)
+  );
+
+  result.contacts.forEach((contact) =>
+    vec3Add(
+      contact,
+      contact,
+      vec3Scale(
+        vec3(),
+        axis,
+        vec3Dot(axis, vec3Sub(vec3(), pointOnPlane, contact))
+      )
+    )
+  );
+
+  // todo modify result.contacts to not include duplicate points
+
+  result.colliding = true;
+  result.normal = axis;
+
+  return result;
+}
