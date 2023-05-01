@@ -14,6 +14,7 @@ import {
   Model2DComponent,
   ModelComponent,
   PositionComponent,
+  RigidBodyComponent,
 } from "./components";
 import { Vec3, vec3 } from "./math/vec3";
 import Material from "./gl/material";
@@ -38,7 +39,10 @@ import { applyFilter } from "./gl/helpers";
 import { DirectionalLightNoShadows } from "./lighting/directionalLightNoShadows";
 import { DirectionalLightPCF } from "./lighting/directionalLightPCF";
 import { PhysicsSolverSystem } from "./physics/physicssolver.system";
-import { drawOBB } from "./gl/constraintDisplay";
+import { drawOBB, drawSphere } from "./gl/constraintDisplay";
+import { RIGID_BODY_BOX, RIGID_BODY_SPHERE } from "./physics/physics";
+import { RigidBodyVolume } from "./physics/rigidBodyVolume";
+import { sphere3d } from "./math/geometry3d";
 
 function positionToMat4(
   dest: Mat4,
@@ -75,6 +79,7 @@ export class Engine<T extends BaseScene> {
 
   debug = {
     drawConstraints: false,
+    drawRigidVolumes: false,
   };
 
   // gbuffer
@@ -82,6 +87,12 @@ export class Engine<T extends BaseScene> {
   lightingFrameBuffer: FrameBuffer;
 
   private finalMaterial: Material;
+  private debugPoints: {
+    [key: string]: {
+      point: () => Vec3;
+      color: Vec3 | undefined;
+    }
+  } = {};
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -264,6 +275,32 @@ export class Engine<T extends BaseScene> {
           });
       }
 
+      if (this.debug.drawRigidVolumes) {
+        this.root?.entities
+          .withComponents(RigidBodyComponent)
+          .forEach((entity) => {
+            const r = entity.component(RigidBodyComponent) as RigidBodyVolume;
+
+            if (r.type === RIGID_BODY_BOX) {
+              drawOBB(
+                gl,
+                renderParams.worldToViewMatrix,
+                renderParams.camera.projection,
+                r.obb!
+              );
+            } else if (r.type === RIGID_BODY_SPHERE) {
+              drawSphere(
+                gl,
+                renderParams.worldToViewMatrix,
+                renderParams.camera.projection,
+                r.sphere!
+              );
+            }
+          });
+      }
+
+      this.renderDebugPoints(renderParams);
+
       this.root?.entities
         .withComponents(Model2DComponent)
         ?.forEach((entity) => {
@@ -372,6 +409,32 @@ export class Engine<T extends BaseScene> {
       gl.enable(gl.CULL_FACE);
       gl.depthMask(true);
       gl.enable(gl.DEPTH_TEST);
+    }
+  }
+
+  renderDebugPoints(renderParams: RenderParams) {
+    Object.keys(this.debugPoints).forEach((key) => {
+      const point = this.debugPoints[key];
+      if (point) {
+        drawSphere(
+          this.gl,
+          renderParams.worldToViewMatrix,
+          renderParams.camera.projection,
+          sphere3d(point.point(), 0.02),
+          point.color || vec3(1, 0, 0)
+        );
+      }
+    });
+  }
+
+  drawPoint(key: string, point: (() => Vec3) | null, color?: Vec3) {
+    if (point === null) {
+      delete this.debugPoints[key];
+    } else {
+      this.debugPoints[key] = {
+        point,
+        color
+      };
     }
   }
 }

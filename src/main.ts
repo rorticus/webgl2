@@ -7,30 +7,26 @@ import { mtl as objMats } from "./models/scene.mtl";
 import { Engine } from "./engine/engine";
 import { Scene } from "./engine/scene";
 import {
-  ConstraintComponent,
   LightComponent,
   ModelComponent,
   PositionComponent,
-  RigidBodyComponent,
+  RigidBodyComponent
 } from "./engine/components";
 import gbufferVert from "./engine/shaders/gbuffer.vert";
 import gbufferFrag from "./engine/shaders/gbuffer.frag";
 import { drawWebglTexture } from "./engine/gl/helpers";
-import {
-  createCircle,
-  createPointShape,
-  createRectangle,
-} from "./engine/shapes";
 import { createIcoSphere } from "./engine/gl/sphere";
-import { vec4 } from "./engine/math/vec4";
-import { RigidBody } from "./engine/physics/physics";
-import Particle from "./engine/physics/particle";
-import { obb } from "./engine/math/geometry3d";
+import { RIGID_BODY_BOX, RIGID_BODY_SPHERE } from "./engine/physics/physics";
+import { obb, sphere3d } from "./engine/math/geometry3d";
 import { quat, quatRotationAboutX } from "./engine/math/quat";
+import { RigidBodyVolume } from "./engine/physics/rigidBodyVolume";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const engine = new Engine(canvas);
 engine.debug.drawConstraints = true;
+engine.debug.drawRigidVolumes = true;
+
+window._engine = engine;
 
 const modelMaterials = loadMaterials(objMats as unknown as string);
 const modelGeometry = loadObj(objModel, modelMaterials);
@@ -40,7 +36,7 @@ const material = new Material(gbufferVert, gbufferFrag);
 const scene = new Scene();
 engine.setRootScene(scene);
 scene.camera.position = vec3(0, 0, 15);
-let yAngle = Math.PI / 6;
+let yAngle = Math.PI / 2;
 let xAngle = Math.PI / 8;
 let radius = 5;
 
@@ -78,25 +74,35 @@ g.groups[0].uniforms = {
 };
 
 const dot = new Model(g, material);
-const p = new Particle();
+const p = new RigidBodyVolume(RIGID_BODY_SPHERE);
+p.sphere = sphere3d(vec3(), 0.3);
 
 scene.entities.add({
   [ModelComponent]: dot,
   [PositionComponent]: {
     position: vec3(1, 1, 1),
-    orientation: vec3(),
-    scale: 0.05,
+    orientation: quat(),
+    scale: 0.3,
   },
   [RigidBodyComponent]: p,
 });
 
+// floor
 const o = obb(
-  vec3(0, 0.5, 1),
+  vec3(0, 0.5, 2),
   vec3(2.5, 0.1, 1),
   quatRotationAboutX(quat(), Math.PI / 24)
 );
+const floor = new RigidBodyVolume(RIGID_BODY_BOX);
+floor.mass = 0;
+floor.obb = o;
 scene.entities.add({
-  [ConstraintComponent]: o,
+  [RigidBodyComponent]: floor,
+  [PositionComponent]: {
+    position: vec3(0, 0.5, 1),
+    orientation: quat(),
+    scale: 1
+  }
 });
 
 // scene.entities.add(createPointShape(-0.25, 0.25, 5, vec3(1, 1, 1)));

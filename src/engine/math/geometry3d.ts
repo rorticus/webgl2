@@ -203,23 +203,37 @@ export function pointInOBB(point: Point3D, obb: OBB) {
 }
 
 export function closestPointOBB(point: Point3D, obb: OBB) {
-  const localPoint = vec3Sub(vec3(), point, obb.position);
-  const localPointRotated = vec3TransformQuat(
-    vec3(),
-    localPoint,
-    quatInvert(quat(), obb.orientation)
+  const axes = getOBBFaceNormals(obb);
+  const halfExtents = obb.size;
+
+  // Transform the point into the local coordinate system of the OBB
+  const localP = vec3(
+    vec3Dot(vec3Sub(vec3(), point, obb.position), axes[0]),
+    vec3Dot(vec3Sub(vec3(), point, obb.position), axes[1]),
+    vec3Dot(vec3Sub(vec3(), point, obb.position), axes[2])
   );
 
-  const closestPoint = vec3(
-    Math.max(-obb.size[0], Math.min(obb.size[0], localPointRotated[0])),
-    Math.max(-obb.size[1], Math.min(obb.size[1], localPointRotated[1])),
-    Math.max(-obb.size[2], Math.min(obb.size[2], localPointRotated[2]))
+  // Clamp the transformed point to the OBB's extents
+  const clampedLocalP = vec3(
+    Math.max(-halfExtents[0], Math.min(halfExtents[0], localP[0])),
+    Math.max(-halfExtents[1], Math.min(halfExtents[1], localP[1])),
+    Math.max(-halfExtents[2], Math.min(halfExtents[2], localP[2]))
   );
 
-  return vec3Add(
-    vec3(),
-    vec3TransformQuat(vec3(), closestPoint, obb.orientation),
-    obb.position
+  // Transform the clamped point back into the world coordinate system
+  return vec3(
+    obb.position[0] +
+      axes[0][0] * clampedLocalP[0] +
+      axes[1][0] * clampedLocalP[1] +
+      axes[2][0] * clampedLocalP[2],
+    obb.position[1] +
+      axes[0][1] * clampedLocalP[0] +
+      axes[1][1] * clampedLocalP[1] +
+      axes[2][1] * clampedLocalP[2],
+    obb.position[2] +
+      axes[0][2] * clampedLocalP[0] +
+      axes[1][2] * clampedLocalP[1] +
+      axes[2][2] * clampedLocalP[2]
   );
 }
 
@@ -1089,7 +1103,17 @@ export function findCollisionFeaturesSphereOBB(
 
   const closestPoint = closestPointOBB(b.position, a);
 
-  const d = vec3MagnitudeSq(vec3Sub(vec3(), b.position, closestPoint));
+  (window as any)._engine.drawPoint("collision", () => closestPoint);
+  (window as any)._engine.drawPoint(
+    "sphere",
+    () => vec3Add(
+      vec3(),
+      b.position,
+      vec3(0, -b.radius, 0)
+    )
+  );
+
+  const d = vec3MagnitudeSq(vec3Sub(vec3(), closestPoint, b.position));
 
   if (d > b.radius * b.radius) {
     return result;
@@ -1104,9 +1128,11 @@ export function findCollisionFeaturesSphereOBB(
 
     vec3Sub(result.normal, b.position, closestPoint);
     vec3Normalize(result.normal, result.normal);
+  } else {
+    result.normal = vec3Normalize(vec3(), vec3Sub(vec3(), b.position, closestPoint));
   }
 
-  const outsidePoint = vec3Add(
+  const outsidePoint = vec3Sub(
     vec3(),
     b.position,
     vec3Scale(vec3(), result.normal, b.radius)

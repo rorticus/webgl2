@@ -3,10 +3,18 @@ import Model from "./model";
 import constraintVertex from "../shaders/constraint.vert";
 import constraintFragment from "../shaders/constraint.frag";
 import Material from "./material";
-import { OBB } from "../types";
-import { mat4, Mat4, mat4Identity, mat4Mul, mat4Scale, mat4Translation } from "../math/mat4";
-import { vec3, vec3Scale } from "../math/vec3";
+import { OBB, Sphere3D } from "../types";
+import {
+  mat4,
+  Mat4,
+  mat4Identity,
+  mat4Mul,
+  mat4Scale,
+  mat4Translation,
+} from "../math/mat4";
+import { Vec3, vec3, vec3Scale } from "../math/vec3";
 import { quatToMat4 } from "../math/quat";
+import { createIcoSphere } from "./sphere";
 
 const constraintMaterial = new Material(constraintVertex, constraintFragment);
 
@@ -53,7 +61,16 @@ geo.drawType = WebGL2RenderingContext.LINES;
 
 const obbConstraintModel = new Model(geo, constraintMaterial);
 
-export function drawOBB(gl: WebGL2RenderingContext, worldToViewMatrix: Mat4, projectionMatrix: Mat4, obb: OBB) {
+const sphereGeo = createIcoSphere();
+sphereGeo.drawType = WebGL2RenderingContext.LINES;
+const sphereModel = new Model(sphereGeo, constraintMaterial);
+
+export function drawOBB(
+  gl: WebGL2RenderingContext,
+  worldToViewMatrix: Mat4,
+  projectionMatrix: Mat4,
+  obb: OBB
+) {
   const worldMatrix = mat4();
   mat4Identity(worldMatrix);
 
@@ -73,4 +90,34 @@ export function drawOBB(gl: WebGL2RenderingContext, worldToViewMatrix: Mat4, pro
   });
 
   obbConstraintModel.draw(gl);
+}
+
+export function drawSphere(
+  gl: WebGL2RenderingContext,
+  worldToViewMatrix: Mat4,
+  projectionMatrix: Mat4,
+  sphere: Sphere3D,
+  color?: Vec3
+) {
+  const worldMatrix = mat4();
+  mat4Identity(worldMatrix);
+
+  const translate = mat4Translation(mat4(), sphere.position);
+  const s = mat4Scale(
+    mat4(),
+    vec3(sphere.radius, sphere.radius, sphere.radius)
+  );
+
+  mat4Mul(worldMatrix, worldMatrix, s);
+  mat4Mul(worldMatrix, worldMatrix, translate);
+
+  mat4Mul(worldMatrix, worldMatrix, worldToViewMatrix);
+
+  sphereModel.prepare(gl, {
+    world: { type: "mat4", value: worldMatrix },
+    projection: { type: "mat4", value: projectionMatrix },
+    color: { type: "vec3", value: color || vec3(1, 1, 0) },
+  });
+
+  sphereModel.draw(gl);
 }

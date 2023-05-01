@@ -241,3 +241,27 @@ export function vec3TransformQuat(dest: Vec3, a: Vec3, q: Quat) {
 
   return dest;
 }
+
+export function quatToEuler(dest: Vec3, q: Quat) {
+  const [w, x, y, z] = q;
+
+  const ysqr = y * y;
+
+  // x-axis rotation
+  const t0 = 2 * (w * x + y * z);
+  const t1 = 1 - 2 * (x * x + ysqr);
+  dest[0] = Math.atan2(t0, t1);
+
+  // y-axis rotation
+  let t2 = 2 * (w * y - z * x);
+  t2 = t2 > 1 ? 1 : t2;
+  t2 = t2 < -1 ? -1 : t2;
+  dest[1] = Math.asin(t2);
+
+  // z-axis rotation
+  const t3 = 2 * (w * z + x * y);
+  const t4 = 1 - 2 * (ysqr + z * z);
+  dest[2] = Math.atan2(t3, t4);
+
+  return dest;
+}

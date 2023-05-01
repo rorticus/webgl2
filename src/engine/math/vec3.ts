@@ -116,3 +116,7 @@ export function vec3Negative(dest: Vec3, a: Vec3) {
 
   return dest;
 }
+
+export function vec3ToString(v: Vec3) {
+  return `vec3(${v[0]}, ${v[1]}, ${v[2]})`
+}
