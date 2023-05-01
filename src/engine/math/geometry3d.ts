@@ -1103,52 +1103,22 @@ export function findCollisionFeaturesSphereOBB(
 
   const closestPoint = closestPointOBB(b.position, a);
 
-  (window as any)._engine.drawPoint("collision", () => closestPoint);
-  (window as any)._engine.drawPoint(
-    "sphere",
-    () => vec3Add(
-      vec3(),
-      b.position,
-      vec3(0, -b.radius, 0)
-    )
-  );
+  const collisionVector = vec3Sub(vec3(), b.position, closestPoint);
+  const collisionDistance = vec3MagnitudeSq(collisionVector);
+  const penetrationDepth = b.radius - Math.sqrt(collisionDistance);
 
-  const d = vec3MagnitudeSq(vec3Sub(vec3(), closestPoint, b.position));
-
-  if (d > b.radius * b.radius) {
-    return result;
+  if (penetrationDepth > 0) {
+    result.colliding = true;
+    result.normal = vec3Normalize(vec3(), collisionVector);
+    result.depth = penetrationDepth;
+    result.contacts.push(
+      vec3Add(
+        vec3(),
+        closestPoint,
+        vec3Scale(vec3(), result.normal, penetrationDepth / 2)
+      )
+    );
   }
-
-  if (cmp(d, 0)) {
-    const mSq = vec3MagnitudeSq(vec3Sub(vec3(), closestPoint, a.position));
-
-    if (cmp(mSq, 0)) {
-      return result;
-    }
-
-    vec3Sub(result.normal, b.position, closestPoint);
-    vec3Normalize(result.normal, result.normal);
-  } else {
-    result.normal = vec3Normalize(vec3(), vec3Sub(vec3(), b.position, closestPoint));
-  }
-
-  const outsidePoint = vec3Sub(
-    vec3(),
-    b.position,
-    vec3Scale(vec3(), result.normal, b.radius)
-  );
-  const distance = vec3Magnitude(vec3Sub(vec3(), closestPoint, outsidePoint));
-
-  result.colliding = true;
-  result.contacts.push(
-    vec3Add(
-      vec3(),
-      closestPoint,
-      vec3Scale(vec3(), vec3Sub(vec3(), outsidePoint, closestPoint), 0.5)
-    )
-  );
-
-  result.depth = distance * 0.5;
 
   return result;
 }

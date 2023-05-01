@@ -75,14 +75,14 @@ g.groups[0].uniforms = {
 
 const dot = new Model(g, material);
 const p = new RigidBodyVolume(RIGID_BODY_SPHERE);
-p.sphere = sphere3d(vec3(), 0.3);
+p.sphere = sphere3d(vec3(), 0.1);
 
 scene.entities.add({
   [ModelComponent]: dot,
   [PositionComponent]: {
     position: vec3(1, 1, 1),
     orientation: quat(),
-    scale: 0.3,
+    scale: 0.1,
   },
   [RigidBodyComponent]: p,
 });
@@ -100,7 +100,7 @@ scene.entities.add({
   [RigidBodyComponent]: floor,
   [PositionComponent]: {
     position: vec3(0, 0.5, 1),
-    orientation: quat(),
+    orientation: quatRotationAboutX(quat(), Math.PI / 24),
     scale: 1
   }
 });

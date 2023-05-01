@@ -12,8 +12,8 @@ const impulseIteration = 5;
 
 let advance = true;
 
-window.addEventListener('keydown', (e) => {
-  if(e.key === ' ') {
+window.addEventListener("keydown", (e) => {
+  if (e.key === " ") {
     advance = true;
   }
 });
@@ -22,7 +22,7 @@ export function PhysicsSolverSystem(scene: BaseScene, dt: number) {
   timeSinceLast += dt;
 
   if (timeSinceLast >= fps) {
-    if(advance) {
+    if (advance) {
       const constraints = scene.entities
         .withComponents(ConstraintComponent)
         .map((e) => e.component(ConstraintComponent));
@@ -44,6 +44,10 @@ export function PhysicsSolverSystem(scene: BaseScene, dt: number) {
         body.prepare(entity as any);
       });
 
+      bodies.forEach(({ body }) => {
+        body.applyForces();
+      });
+
       for (let i = 0; i < bodies.length; i++) {
         const body1 = bodies[i].body;
 
@@ -54,30 +58,17 @@ export function PhysicsSolverSystem(scene: BaseScene, dt: number) {
             const m1 = body1 as RigidBodyVolume;
             const m2 = body2 as RigidBodyVolume;
 
-            const result = m1.findCollisionFeatures(m1, m2);
-
-            if (result.colliding) {
-              collisions.push({ a: m1, b: m2, m: result });
-            }
+            m1.findCollisionFeatures(m1, m2, collisions);
           }
         }
       }
 
-      bodies.forEach(({ body }) => {
-        body.applyForces();
-      });
-
-      for (let k = 0; k < impulseIteration; k++) {
-        for (let i = 0; i < collisions.length; i++) {
-          for (let j = 0; j < collisions[i].m.contacts.length; j++) {
-            collisions[i].a.applyImpulse(
-              collisions[i].a,
-              collisions[i].b,
-              collisions[i].m,
-              j
-            );
-          }
-        }
+      for (let i = 0; i < collisions.length; i++) {
+        collisions[i].a.applyImpulse(
+          collisions[i].a,
+          collisions[i].b,
+          collisions[i].m
+        );
       }
 
       bodies.forEach(({ body }) => {
@@ -122,7 +113,7 @@ export function PhysicsSolverSystem(scene: BaseScene, dt: number) {
       });
     }
 
-    advance = false;
+    advance = true;
     timeSinceLast -= fps;
   }
 }

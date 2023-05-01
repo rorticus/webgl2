@@ -9,7 +9,8 @@ import {
   vec3MagnitudeSq,
   vec3Normalize,
   vec3Scale,
-  vec3Sub
+  vec3Sub,
+  vec3ToString,
 } from "../math/vec3";
 import { CollisionManifold, OBB, Sphere3D } from "../types";
 import { EntityWithComponents } from "../entities";
@@ -19,7 +20,7 @@ import {
   createCollisionManifold,
   findCollisionFeaturesSphereOBB,
   findCollisionFeaturesSphereSphere,
-  findOBBOBBCollisionFeatures
+  findOBBOBBCollisionFeatures,
 } from "../math/geometry3d";
 import { mat4, Mat4, mat4Inv, mat4MulVec3 } from "../math/mat4";
 import { quatFromEuler, quatToEuler } from "../math/quat";
@@ -68,7 +69,7 @@ export class RigidBodyVolume extends RigidBody {
   }
 
   applyForces(): void {
-    vec3Add(this.forces, this.forces, vec3Scale(vec3(), GRAVITY, this.mass));
+    vec3Add(this.forces, vec3(), vec3Scale(vec3(), GRAVITY, this.mass));
   }
 
   addLinearImpulse(impulse: Vec3): void {
@@ -144,16 +145,38 @@ export class RigidBodyVolume extends RigidBody {
 
   findCollisionFeatures(
     a: RigidBodyVolume,
-    b: RigidBodyVolume
+    b: RigidBodyVolume,
+    collisions: {
+      a: RigidBodyVolume;
+      b: RigidBodyVolume;
+      m: CollisionManifold;
+    }[]
   ): CollisionManifold {
     if (a.sphere && b.sphere) {
-      return findCollisionFeaturesSphereSphere(a.sphere, b.sphere);
+      const result = findCollisionFeaturesSphereSphere(a.sphere, b.sphere);
+      if (result.colliding) {
+        collisions.push({ a, b, m: result });
+      }
+
+      return result;
     } else if (a.obb && b.obb) {
-      return findOBBOBBCollisionFeatures(a.obb, b.obb);
+      const result = findOBBOBBCollisionFeatures(a.obb, b.obb);
+      if (result.colliding) {
+        collisions.push({ a, b, m: result });
+      }
+      return result;
     } else if (a.sphere && b.obb) {
-      return findCollisionFeaturesSphereOBB(b.obb, a.sphere);
+      const result = findCollisionFeaturesSphereOBB(b.obb, a.sphere);
+      if (result.colliding) {
+        collisions.push({ a: b, b: a, m: result });
+      }
+      return result;
     } else if (a.obb && b.sphere) {
-      return findCollisionFeaturesSphereOBB(a.obb, b.sphere);
+      const result = findCollisionFeaturesSphereOBB(a.obb, b.sphere);
+      if (result.colliding) {
+        collisions.push({ a, b, m: result });
+      }
+      return result;
     }
 
     console.error("invalid rigid body volumes", a.type, b.type);
@@ -163,8 +186,7 @@ export class RigidBodyVolume extends RigidBody {
   applyImpulse(
     a: RigidBodyVolume,
     b: RigidBodyVolume,
-    manifest: CollisionManifold,
-    c: number
+    manifest: CollisionManifold
   ): void {
     const invMass1 = a.invMass();
     const invMass2 = b.invMass();
@@ -174,20 +196,10 @@ export class RigidBodyVolume extends RigidBody {
       return;
     }
 
-    const r1 = vec3Sub(vec3(), manifest.contacts[c], a.position);
-    const r2 = vec3Sub(vec3(), manifest.contacts[c], b.position);
-    const i1 = a.invTensor();
-    const i2 = b.invTensor();
-
     // relative velocity
-    const relativeVelocity = vec3Sub(
-      vec3(),
-      vec3Add(vec3(), b.velocity, vec3Cross(vec3(), b.angularVelocity, r2)),
-      vec3Add(vec3(), a.velocity, vec3Cross(vec3(), a.angularVelocity, r1))
-    );
-    const relativeNormal = vec3Normalize(vec3(), manifest.normal);
+    const relativeVelocity = vec3Sub(vec3(), b.velocity, a.velocity);
 
-    const velocityAlongNormal = vec3Dot(relativeVelocity, relativeNormal);
+    const velocityAlongNormal = vec3Dot(relativeVelocity, manifest.normal);
 
     // moving away from each other
     if (velocityAlongNormal > 0) {
@@ -195,113 +207,12 @@ export class RigidBodyVolume extends RigidBody {
     }
 
     const e = Math.min(a.cor, b.cor);
-    let numerator = -(1 + e) * velocityAlongNormal;
+    const j = (-(1 + e) * velocityAlongNormal) / invMassSum;
 
-    let d1 = invMassSum;
-    let d2 = vec3Cross(
-      vec3(),
-      mat4MulVec3(vec3(), i1, vec3Cross(vec3(), r1, relativeNormal)),
-      r1
-    );
-    let d3 = vec3Cross(
-      vec3(),
-      mat4MulVec3(vec3(), i2, vec3Cross(vec3(), r2, relativeNormal)),
-      r2
-    );
-
-    let denominator =
-      d1 + vec3Dot(relativeNormal, vec3Add(vec3(), d2, d3));
-
-    let j = denominator === 0 ? 0 : numerator / denominator;
-
-    if (manifest.contacts.length > 0 && j !== 0) {
-      j /= manifest.contacts.length;
-    }
-
-    const impulse = vec3Scale(vec3(), relativeNormal, j);
+    const impulse = vec3Scale(vec3(), manifest.normal, j);
 
     vec3Sub(a.velocity, a.velocity, vec3Scale(vec3(), impulse, invMass1));
     vec3Add(b.velocity, b.velocity, vec3Scale(vec3(), impulse, invMass2));
-    vec3Sub(
-      a.angularVelocity,
-      a.angularVelocity,
-      mat4MulVec3(vec3(), i1, vec3Cross(vec3(), r1, impulse))
-    );
-    vec3Add(
-      b.angularVelocity,
-      b.angularVelocity,
-      mat4MulVec3(vec3(), i2, vec3Cross(vec3(), r2, impulse))
-    );
-
-    // friction
-    const tangent = vec3Sub(
-      vec3(),
-      relativeVelocity,
-      vec3Scale(vec3(), manifest.normal, velocityAlongNormal)
-    );
-    vec3Normalize(tangent, tangent);
-
-    if (cmp(vec3MagnitudeSq(tangent), 0)) {
-      return;
-    }
-
-    numerator = -vec3Dot(relativeVelocity, tangent);
-    d1 = invMassSum;
-    d2 = vec3Cross(
-      vec3(),
-      mat4MulVec3(vec3(), i1, vec3Cross(vec3(), r1, tangent)),
-      r1
-    );
-    d3 = vec3Cross(
-      vec3(),
-      mat4MulVec3(vec3(), i2, vec3Cross(vec3(), r2, tangent)),
-      r2
-    );
-
-    denominator = d1 + vec3Dot(tangent, vec3Add(vec3(), d2, d3));
-
-    if (denominator === 0) {
-      return;
-    }
-
-    let j2 = numerator / denominator;
-
-    if (manifest.contacts.length > 0 && j2 !== 0) {
-      j2 /= manifest.contacts.length;
-    }
-
-    if (cmp(j2, 0)) {
-      return;
-    }
-
-    const friction = Math.sqrt(a.friction * b.friction);
-    if (j2 > j * friction) {
-      j2 = j * friction;
-    } else if (j2 < -j * friction) {
-      j2 = -j * friction;
-    }
-
-    const frictionImpulse = vec3Scale(vec3(), tangent, j2);
-    vec3Sub(
-      a.velocity,
-      a.velocity,
-      vec3Scale(vec3(), frictionImpulse, invMass1)
-    );
-    vec3Add(
-      b.velocity,
-      b.velocity,
-      vec3Scale(vec3(), frictionImpulse, invMass2)
-    );
-    vec3Sub(
-      a.angularVelocity,
-      a.angularVelocity,
-      mat4MulVec3(vec3(), i1, vec3Cross(vec3(), r1, frictionImpulse))
-    );
-    vec3Add(
-      b.angularVelocity,
-      b.angularVelocity,
-      mat4MulVec3(vec3(), i2, vec3Cross(vec3(), r2, frictionImpulse))
-    );
   }
 
   solveConstraints(_constraints: OBB[]): void {}

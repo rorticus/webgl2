@@ -7,6 +7,7 @@ import { Camera } from "./gl/camera";
 import { Circle2D } from "./math/circle2d";
 import { Rectangle2D } from "./math/rectangle2d";
 import { Quat } from "./math/quat";
+import { RigidBodyVolume } from "./physics/rigidBodyVolume";
 
 export type ArrayToKeys<O, T extends (keyof O)[]> = {
   [K in T[number]]: O[K];
